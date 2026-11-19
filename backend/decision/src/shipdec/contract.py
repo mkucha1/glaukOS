@@ -26,7 +26,8 @@ from .evaluate import predicted_key
 # Poziom ze skali Basala (pytanie `pilnosc`, 1 = najniższy) -> priorytet P (1 = najwyższy, jak we frontendzie).
 PRIORITY_FROM_LEVEL = {1: 3, 2: 2, 3: 1}
 DPA_PRIORITY = 1                     # raport do DPA na górę kolejki (ale to nie alarm na mostek)
-ROUTE_ROLE = {"engine": "chief_engineer", "deck": "officer"}   # role z frontendu
+# Kto zatwierdza dział (positions.approves w Supabase): kuchnię zatwierdza chief_officer.
+ROUTE_ROLE = {"engine": "chief_engineer", "deck": "chief_officer", "catering": "chief_officer"}
 SECTOR_MIN_CONF = 0.5   # od tej pewności serwer wpisuje sektor do formularza (location), inaczej zostaje z reguł
 # Serwer zespołu (gałąź `offline`) — gdy go nie ma w repo, kopia w integration/mozg-statku/.
 _SERVER_CONFIG_DIR = ROOT.parents[1] / "mozg-statku" / "server" / "config"
@@ -35,7 +36,7 @@ SERVER_CONFIG = (_SERVER_CONFIG_DIR if _SERVER_CONFIG_DIR.is_dir() else ROOT / "
 
 def assignees() -> dict[str, str]:
     """rola (klucz pytania `osoba`) -> crew_id."""
-    return {role: d["crew_id"] for role, d in load_crew().items()}
+    return {role: d["crew_id"] for role, d in load_crew().items() if d.get("crew_id")}
 
 
 def to_decision(answers: dict, thresholds: dict, assignee_by_role: dict[str, str] | None = None) -> dict:

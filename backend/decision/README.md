@@ -254,3 +254,38 @@ ENV_DIR=../../../.venv-mlx ./scripts/voice_pipeline_mac.sh     # nagrania z ~/Do
 ```
 
 Wynik: `results/voice/raport.md` (tekst na każdym etapie, decyzje, pewności, czasy).
+
+## Cała aplikacja na Supabase: strona → nagranie → STT → qwen → Basal → strona (gałąź `full-pipeline`)
+
+Kontrakt z `supabase/README.md`. Telefon wysyła audio do Storage i zdarzenie `report.recorded`, a worker
+na Macu (`shipdec worker`) co 2 s pyta o nowe nagrania i dopisuje zdarzenia z tym samym `report_id`:
+
+| zdarzenie | kto | treść |
+|---|---|---|
+| `report.transcribed` | `system:whisper` | `{text, lang}`: tekst z STT (gałąź `stt`), język z qwena |
+| `report.structured` | `system:basal` | `ReportForm`: wpis po angielsku (qwen), priorytet P1–P3, sektor (`location`) i **`decision`** z Basala: dział, sugerowane stanowisko i osoba z `crew` (najpierw na dyżurze), raport DPA, pewności |
+| `report.clarification_requested` | system | puste nagranie albo brak treści: prośba o powtórzenie |
+| `report.clarified` | `system:basal` | po `report.clarification_answered` (tekst albo głos), potem nowy `report.structured` |
+
+Oficer widzi decyzję modelu w szczegółach zgłoszenia (karta „Model decision”). Podpowiedziana osoba jest
+wybrana w „Assign to”, a resztę (zatwierdzenie, przydział) robi frontend jak dotąd. Basal ocenia surowy
+tekst z STT (eksperyment `cleaning-eval`), a qwen daje czytelny wpis do dziennika.
+
+Uruchomienie na Macu:
+
+```bash
+# backend/decision/.env: SUPABASE_URL i SUPABASE_SECRET_KEY (Project Settings -> API Keys, klucz secret)
+cd backend/decision && ENV_DIR=../../../.venv-mlx ./scripts/ship_backend_mac.sh       # STT + Basal + worker
+
+# drugi terminal: strona (frontend/.env.local: VITE_BACKEND=supabase + URL + klucz publishable)
+cd frontend && npm install && npm run dev                                             # http://localhost:5173
+```
+
+Worker na starcie wyłącza `ship_status.autopilot` (scenariusz demo w bazie), a po Ctrl+C włącza go z powrotem.
+
+Stanowiska i działy są jak we frontendzie (`frontend/src/lib/positions.ts`):
+- pytanie `dzial`: `engine` / `deck` / `catering`;
+- pytanie `osoba`: `chief_engineer`, `2nd_engineer`, `chief_officer`, `bosun`, `chief_cook`.
+
+Dane są przeetykietowane pod te stanowiska.
+`integration/` (stary serwer z gałęzi `offline`) zostaje dla porządku, ale nie pasuje już do nowych stanowisk.

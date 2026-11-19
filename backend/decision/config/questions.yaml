@@ -4,11 +4,13 @@
 
 questions:
   dzial:
+    # Działy jak w Supabase (positions.department); `command` (kapitan) nie dostaje zadań.
     type: choice
     instructions: "Który dział na statku musi się tym zająć (naprawić, zamówić, zdecydować)?"
     criteria:
       engine: "Maszynownia: silnik, pompy, generatory, instalacje, elektryka i elektronika (także na mostku), chłodnie, klimatyzacja"
-      deck: "Reszta statku pod oficerem: pokład, ładownie, balast, cumowanie, sprzęt ratunkowy i ppoż., nawigacja, nadbudówka, kuchnia i prowiant, odpady"
+      deck: "Pokład pod oficerem: ładunek, ładownie, balast, cumowanie, malowanie, sprzęt ratunkowy i ppoż., nawigacja, wypadki"
+      catering: "Kuchnia i hotel: prowiant i zapasy żywności, mesa, odpady spożywcze, sprzątanie nadbudówki"
 
   pilnosc:
     # Pilność = priorytet we frontendzie i na serwerze, skala 1-3, P1 = najwyższy.

@@ -1,4 +1,4 @@
-"""Polecenia:  shipdec generate | realistic | evaluate | clean | compare | voice | push | queue | export-server-config"""
+"""Polecenia:  shipdec generate | realistic | evaluate | clean | compare | voice | worker | push | queue | export-server-config"""
 from __future__ import annotations
 
 import argparse
@@ -77,6 +77,16 @@ def main(argv: list[str] | None = None) -> None:
     v.add_argument("--backend", choices=["basal", "mock"], default="basal")
     v.add_argument("--url", default=None)
 
+    w = sub.add_parser("worker", help="worker statku: Supabase -> STT -> qwen -> Basal -> Supabase")
+    w.add_argument("--stt-url", default="http://127.0.0.1:8002", help="serwis STT (gałąź stt)")
+    w.add_argument("--basal-url", default=None, help="domyślnie BASAL_URL z .env")
+    w.add_argument("--llm-dir", default=str(ROOT.parents[2] / "moj-llm" / "my_folder"))
+    w.add_argument("--take-over", action="store_true",
+                   help="wyłącz ship_status.autopilot (scenariusz demo w bazie), jak w supabase/README.md")
+    w.add_argument("--restore-autopilot", action="store_true", help="po zakończeniu włącz autopilota z powrotem")
+    w.add_argument("--since-minutes", type=float, default=10, help="obsłuż też zgłoszenia z ostatnich N minut")
+    w.add_argument("--poll", type=float, default=2.0)
+
     k = sub.add_parser("queue", help="pokaż kolejkę wysyłki dla wyników ewaluacji")
     k.add_argument("--results", default=str(ROOT / "results" / "results.jsonl"))
     k.add_argument("-n", type=int, default=15)
@@ -117,6 +127,10 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd == "sample":
         from .clean import build_sample
         print(f"próbka {build_sample(a.data_dir, a.out_dir, a.list)} zgłoszeń -> {a.out_dir}")
+        return
+    if a.cmd == "worker":
+        from .worker import main_worker
+        main_worker(a)
         return
     if a.cmd == "voice":
         from .voice import run_voice

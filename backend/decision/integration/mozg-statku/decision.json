@@ -6,7 +6,8 @@
       "instructions": "Który dział na statku musi się tym zająć (naprawić, zamówić, zdecydować)?",
       "criteria": {
         "engine": "Maszynownia: silnik, pompy, generatory, instalacje, elektryka i elektronika (także na mostku), chłodnie, klimatyzacja",
-        "deck": "Reszta statku pod oficerem: pokład, ładownie, balast, cumowanie, sprzęt ratunkowy i ppoż., nawigacja, nadbudówka, kuchnia i prowiant, odpady"
+        "deck": "Pokład pod oficerem: ładunek, ładownie, balast, cumowanie, malowanie, sprzęt ratunkowy i ppoż., nawigacja, wypadki",
+        "catering": "Kuchnia i hotel: prowiant i zapasy żywności, mesa, odpady spożywcze, sprzątanie nadbudówki"
       }
     },
     "pilnosc": {
@@ -42,7 +43,9 @@
       "criteria": {
         "chief_engineer": "Starszy mechanik — poważne awarie, decyzje techniczne, zamówienia części, paliwo, odolejacz",
         "2nd_engineer": "Drugi mechanik — bieżące usterki i obchody maszynowni, pompy, generatory, elektryka, chłodnie, klimatyzacja",
-        "officer": "Oficer — pokład, ładunek, balast, cumowanie, sprzęt ratunkowy i ppoż., nawigacja, nadbudówka, kuchnia i prowiant, odpady"
+        "chief_officer": "Starszy oficer — ładunek, ładownie, balast, inspekcje, sprzęt ratunkowy i ppoż., nawigacja, wypadki i sprawy medyczne",
+        "bosun": "Bosman — prace pokładowe: liny i cumowanie, malowanie i rdza, trapy, windy kotwiczne, magazyn bosmański",
+        "chief_cook": "Starszy kucharz — kuchnia, prowiant i zapasy, mesa, odpady spożywcze, sprzątanie nadbudówki"
       }
     }
   },
@@ -60,13 +63,10 @@
   "dpa_priority": 1,
   "route_role": {
     "engine": "chief_engineer",
-    "deck": "officer"
+    "deck": "chief_officer",
+    "catering": "chief_officer"
   },
-  "assignee": {
-    "chief_engineer": "anna",
-    "2nd_engineer": "tom",
-    "officer": "ivan"
-  },
+  "assignee": {},
   "sector_labels": {
     "engine": "Engine room",
     "deck": "Main deck",

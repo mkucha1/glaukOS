@@ -8,7 +8,7 @@
 #                 pilnosc = priorytet jak we frontendzie: 1 pilne (dziś), 2 w najbliższych dniach / przy porcie, 3 rutyna
 #   miejsca     — lokalizacje po angielsku, zgodne z sektorami przekroju statku we frontendzie
 #                 (shipdec/ship.py: sector_of); z `miejsca_wg_slotu: true` lista jest równoległa do slotów
-#   zglaszajacy — role z frontendu (2nd_engineer, chief_engineer, officer), w których ktoś by to zgłosił
+#   zglaszajacy — stanowiska z frontendu (frontend/src/lib/positions.ts), z których ktoś by to zgłosił
 #   sloty       — wartości do {slot}; listy równoległe (jeden wspólny indeks), więc wersja pl i en mówią to samo
 #   teksty      — warianty treści per język (jak po zamianie mowy na tekst)
 # TODO: zastąpić/uzupełnić przykładami od prawdziwych oficerów.
@@ -59,10 +59,10 @@ templates:
 
   - id: malowanie_skonczone
     kategoria: rutyna
-    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: bosun}
     miejsca: ["Main deck", "Boat deck", "Forecastle"]
     miejsca_wg_slotu: true
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       gdzie: ["przy włazie numer trzy", "na pokładzie łodziowym", "na dziobie"]
       gdzie_en: ["around hatch number three", "on the boat deck", "on the forecastle"]
@@ -72,9 +72,9 @@ templates:
 
   - id: farba_reling
     kategoria: rutyna
-    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: bosun}
     miejsca: ["Main deck", "Boat deck"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       gdzie: ["na relingu przy mostku", "na pokładzie łodziowym", "przy włazie numer trzy"]
       gdzie_en: ["on the railing near the bridge", "on the boat deck", "near hatch number three"]
@@ -84,9 +84,9 @@ templates:
 
   - id: przeglad_ratunkowy
     kategoria: rutyna
-    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: chief_officer}
     miejsca: ["Boat deck"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       sprzet: ["łodzi ratunkowej", "tratw ratunkowych", "kół ratunkowych"]
       sprzet_en: ["the lifeboat", "the liferafts", "the lifebuoys"]
@@ -96,9 +96,9 @@ templates:
 
   - id: przekazanie_wachty
     kategoria: rutyna
-    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: chief_officer}
     miejsca: ["Bridge"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     teksty:
       pl: ["Wachta przekazana, kurs i prędkość bez zmian, pogoda dobra, nic do zgłoszenia."]
       en: ["Watch handed over, course and speed unchanged, good weather, nothing to report."]
@@ -107,7 +107,7 @@ templates:
     kategoria: rutyna
     gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     miejsca: ["Accommodation, crew cabins"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       nr: ["dwieście cztery", "trzysta dwanaście", "sto osiem"]
       nr_en: ["two zero four", "three one two", "one zero eight"]
@@ -120,7 +120,7 @@ templates:
     gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     miejsca: ["Accommodation, corridor", "Accommodation, laundry", "Main deck, paint store"]
     miejsca_wg_slotu: true
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       miejsce: ["korytarzu przy kabinach", "pralni", "magazynku farb"]
       miejsce_en: ["corridor near the cabins", "laundry", "paint store"]
@@ -130,18 +130,18 @@ templates:
 
   - id: odpady_port
     kategoria: rutyna
-    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}  # gospodarka odpadami: oficer
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: chief_officer}  # gospodarka odpadami: oficer
     miejsca: ["Galley", "Main deck, garbage store"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     teksty:
       pl: ["Magazyn odpadów prawie pełny, trzeba oddać śmieci w najbliższym porcie."]
       en: ["Garbage store almost full, we need to land the garbage at the next port."]
 
   - id: prowiant_planowo
     kategoria: rutyna
-    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
+    gold: {dzial: catering, pilnosc: 2, raport_dpa: false, osoba: chief_cook}
     miejsca: ["Galley, provision store", "Galley"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       produkt: ["mąka i ryż", "kawa i herbata", "świeże warzywa"]
       produkt_en: ["flour and rice", "coffee and tea", "fresh vegetables"]
@@ -151,9 +151,9 @@ templates:
 
   - id: ladownia_gotowa
     kategoria: rutyna
-    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: chief_officer}
     miejsca: ["Main deck, hatch area"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       nr: ["jeden", "dwa", "cztery"]
       nr_en: ["one", "two", "four"]
@@ -181,9 +181,9 @@ templates:
 
   - id: pomiar_balastu
     kategoria: rutyna
-    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: chief_officer}
     miejsca: ["Ballast tanks, sounding pipes"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       nr: ["dwa", "trzy", "cztery"]
       nr_en: ["two", "three", "four"]
@@ -194,10 +194,10 @@ templates:
   # ---------------------------------------------------------------- USTERKI (P2-P1)
   - id: zeza_ladowni
     kategoria: usterka
-    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: chief_officer}
     miejsca: ["Cargo hold 1", "Cargo hold 2", "Cargo hold 4"]
     miejsca_wg_slotu: true
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       nr: ["jeden", "dwa", "cztery"]
       nr_en: ["one", "two", "four"]
@@ -219,9 +219,9 @@ templates:
 
   - id: prowiant_brak
     kategoria: usterka
-    gold: {dzial: deck, pilnosc: 1, raport_dpa: false, osoba: officer}
+    gold: {dzial: catering, pilnosc: 1, raport_dpa: false, osoba: chief_cook}
     miejsca: ["Galley, provision store"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       produkt: ["mleka", "jajek", "chleba tostowego"]
       produkt_en: ["milk", "eggs", "toast bread"]
@@ -233,7 +233,7 @@ templates:
     kategoria: usterka
     gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: 2nd_engineer}  # zgłasza kuchnia, naprawia maszynownia
     miejsca: ["Galley, provision cold room"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       temp: ["plus sześć", "plus osiem"]
       temp_en: ["plus six", "plus eight"]
@@ -255,10 +255,10 @@ templates:
 
   - id: przetarta_lina
     kategoria: usterka
-    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: bosun}
     miejsca: ["Main deck, aft mooring station", "Forecastle"]
     miejsca_wg_slotu: true
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       gdzie: ["na rufie", "na dziobie"]
       gdzie_en: ["on the stern", "on the bow"]
@@ -268,9 +268,9 @@ templates:
 
   - id: wlaz_ladowni
     kategoria: usterka
-    gold: {dzial: deck, pilnosc: 1, raport_dpa: false, osoba: officer}
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: false, osoba: chief_officer}
     miejsca: ["Main deck, hatch area"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       nr: ["jeden", "dwa", "cztery"]
       nr_en: ["one", "two", "four"]
@@ -293,9 +293,9 @@ templates:
 
   - id: oparzenie_kuchnia
     kategoria: zdarzenie
-    gold: {dzial: deck, pilnosc: 1, raport_dpa: true, osoba: officer}
+    gold: {dzial: catering, pilnosc: 1, raport_dpa: true, osoba: chief_officer}
     miejsca: ["Galley"]
-    zglaszajacy: ["officer"]
+    zglaszajacy: ["chief_officer"]
     sloty:
       co: ["olej z frytownicy", "wrzątek z kotła"]
       co_en: ["hot oil from the fryer", "boiling water from the kettle"]

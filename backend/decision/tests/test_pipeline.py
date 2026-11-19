@@ -1,5 +1,6 @@
 """Testy potoku na atrapie modelu — nie wymagają GPU ani Basala."""
 import json
+import re
 import uuid
 
 from shipdec.backends import MockBackend
@@ -9,8 +10,6 @@ from shipdec.generate import generate, load_dataset, write_dataset
 from shipdec.ship import SECTORS, sector_of
 
 SERVER = ROOT.parents[1] / "mozg-statku" / "server"
-# Bez serwera w repo (gałąź decision-layer) — kopia crew.json z integration/mozg-statku/.
-SERVER_CREW = (SERVER / "config" / "crew.json") if SERVER.is_dir() else ROOT / "integration" / "mozg-statku" / "crew.json"
 
 
 def test_generate_is_deterministic():
@@ -82,24 +81,30 @@ def test_all_locations_are_english_and_land_in_a_sector():
         assert not any(ch in p for ch in "ąćęłńóśźż"), p
 
 
-FRONTEND_ROLES = {"2nd_engineer", "chief_engineer", "officer"}   # frontend/src/types.ts: Role
+POSITIONS_TS = ROOT.parents[1] / "frontend" / "src" / "lib" / "positions.ts"   # lustro tabeli public.positions
 
 
-def test_frontend_roles_are_read_from_frontend():
-    types = (ROOT.parents[1] / "frontend" / "src" / "types.ts").read_text()
-    line = next(l for l in types.splitlines() if l.startswith("export type Role ="))
-    assert {r.strip(" '") for r in line.split("=", 1)[1].rstrip(";").split("|")} == FRONTEND_ROLES
+def frontend_positions() -> dict[str, str]:
+    """stanowisko -> dział, odczytane z frontend/src/lib/positions.ts."""
+    src = POSITIONS_TS.read_text()
+    return dict(re.findall(r"id: '([a-z0-9_]+)',\s*label: '[^']*',\s*department: '([a-z]+)'", src))
 
 
-def test_roles_and_assignees_match_frontend_and_server():
-    server_crew = {c["crew_id"]: c for c in json.loads(SERVER_CREW.read_text())}
-    roster = {c["crew_id"]: c for c in load_yaml(ROOT / "config" / "roster.yaml")["zaloga"]}
-    for c in roster.values():                              # zgłaszający = osoby z serwera w rolach z frontendu
-        assert c["rola"] in FRONTEND_ROLES
-        assert c["crew_id"] in server_crew and server_crew[c["crew_id"]]["role"] == c["rola"]
-    assert set(load_crew()) == FRONTEND_ROLES              # pytanie `osoba` = role z frontendu
-    for role, d in load_crew().items():
-        assert server_crew[d["crew_id"]]["role"] == role
+def test_positions_are_read_from_frontend():
+    pos = frontend_positions()
+    assert len(pos) == 14 and pos["chief_officer"] == "deck" and pos["chief_cook"] == "catering"
+
+
+def test_people_and_departments_match_frontend():
+    pos = frontend_positions()
+    for c in load_yaml(ROOT / "config" / "roster.yaml")["zaloga"]:   # zgłaszający: stanowiska z frontendu
+        assert pos[c["rola"]] == c["dzial"]
+    for role, d in load_crew().items():                               # pytanie `osoba`: stanowiska z frontendu
+        assert pos[role] == d["dzial"]
+    questions, _ = load_questions()
+    assert set(questions["dzial"]["criteria"]) == set(pos.values()) - {"command"}
+    from shipdec.contract import ROUTE_ROLE
+    assert set(ROUTE_ROLE) == set(questions["dzial"]["criteria"]) and set(ROUTE_ROLE.values()) <= set(pos)
 
 
 def test_reporter_roles_exist_in_roster():
@@ -162,8 +167,8 @@ def test_contract_to_server_decision():
                       "Lina na rufie przetarta.", "Obchód zrobiony, wszystko w normie."):
         out = decide(seed_text, MockBackend(), questions, thresholds)
         assert out["priority"] in (1, 2, 3)                # skala frontendu, P1 = najwyższy
-        assert out["dept"] in ("engine", "deck")
-        assert out["route_role"] in FRONTEND_ROLES
+        assert out["dept"] in ("engine", "deck", "catering")
+        assert out["route_role"] in frontend_positions()
         assert isinstance(out["needs_officer"], bool)
         if out["_basal"]["dpa_report"]:
             assert out["priority"] == 1
