@@ -1,0 +1,10 @@
+# Role na statku, do których model może przydzielić zadanie.
+# Klucz = identyfikator roli (etykieta "gold"), opis = tekst widziany przez model.
+
+crew:
+  starszy_oficer:   {dzial: pokład,      opis: "Starszy oficer — ładunek, stateczność, bezpieczeństwo na pokładzie"}
+  bosman:           {dzial: pokład,      opis: "Bosman — prace pokładowe, cumowanie, konserwacja sprzętu pokładowego"}
+  starszy_mechanik: {dzial: maszynownia, opis: "Starszy mechanik — poważne awarie maszynowni, decyzje techniczne"}
+  drugi_mechanik:   {dzial: maszynownia, opis: "Drugi mechanik — bieżące usterki silnika, pomp i instalacji"}
+  elektryk:         {dzial: maszynownia, opis: "Elektryk (ETO) — instalacja elektryczna, oświetlenie, automatyka"}
+  kucharz:          {dzial: kuchnia,     opis: "Starszy kucharz — kuchnia, prowiant, chłodnie, kabiny"}

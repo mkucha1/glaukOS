@@ -1,0 +1,27 @@
+# Fikcyjna załoga fikcyjnego statku — źródło metadanych "kto zgłosił".
+# Osoby są wymyślone. `jezyk` = język, w którym zwykle nagrywa zgłoszenia.
+
+statek:
+  nazwa: "MV Odra Trader"
+  typ: "masowiec"
+  bandera: "Malta"
+
+zaloga:
+  - {id: C01, imie_nazwisko: "Tomasz Wierzbicki",  stanowisko: "kapitan",           dzial: dowodztwo,   jezyk: pl}
+  - {id: C02, imie_nazwisko: "Paweł Grabowski",    stanowisko: "starszy oficer",    dzial: pokład,      jezyk: pl}
+  - {id: C03, imie_nazwisko: "Oleksandr Kovalenko", stanowisko: "drugi oficer",     dzial: pokład,      jezyk: en}
+  - {id: C04, imie_nazwisko: "Rajesh Nair",        stanowisko: "trzeci oficer",     dzial: pokład,      jezyk: en}
+  - {id: C05, imie_nazwisko: "Jarosław Mazur",     stanowisko: "bosman",            dzial: pokład,      jezyk: pl}
+  - {id: C06, imie_nazwisko: "Ramon dela Cruz",    stanowisko: "marynarz AB",       dzial: pokład,      jezyk: en}
+  - {id: C07, imie_nazwisko: "Jomar Bautista",     stanowisko: "marynarz OS",       dzial: pokład,      jezyk: en}
+  - {id: C08, imie_nazwisko: "Krzysztof Lis",      stanowisko: "starszy mechanik",  dzial: maszynownia, jezyk: pl}
+  - {id: C09, imie_nazwisko: "Dmytro Shevchuk",    stanowisko: "drugi mechanik",    dzial: maszynownia, jezyk: en}
+  - {id: C10, imie_nazwisko: "Adam Krawczyk",      stanowisko: "trzeci mechanik",   dzial: maszynownia, jezyk: pl}
+  - {id: C11, imie_nazwisko: "Marek Sobczak",      stanowisko: "elektryk",          dzial: maszynownia, jezyk: pl}
+  - {id: C12, imie_nazwisko: "Arnel Santos",       stanowisko: "motorzysta",        dzial: maszynownia, jezyk: en}
+  - {id: C13, imie_nazwisko: "Piotr Wójcik",       stanowisko: "motorzysta",        dzial: maszynownia, jezyk: pl}
+  - {id: C14, imie_nazwisko: "Edwin Reyes",        stanowisko: "starszy kucharz",   dzial: kuchnia,     jezyk: en}
+  - {id: C15, imie_nazwisko: "Mark Villanueva",    stanowisko: "pomocnik kucharza", dzial: kuchnia,     jezyk: en}
+
+# Skąd zgłoszenie mogło zostać nadane
+urzadzenia: ["telefon", "telefon", "telefon", "terminal ECR", "panel na mostku"]

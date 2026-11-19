@@ -9,6 +9,7 @@ Hackathon Kongsberg Maritime × Wydział Informatyki.
 | --- | --- | --- |
 | `frontend/` | Aplikacja PWA (React + Vite + TS): mechanik, oficer, briefing, przekrój statku | Oliwier |
 | `backend/` | FastAPI, Mosquitto, SQLite, kolejka na ląd, Docker Compose | Szymon |
+| `backend/decision/` | Warstwa decyzyjna (Basal): dział, pilność, raport DPA, osoba; dane testowe i ewaluacja | Maciej |
 | `speech/` | DeepFilterNet + faster-whisper | Mateusz |
 | `llm/` | Formularz, tłumaczenie, reguły, symulator czujników | Maciej |
 
