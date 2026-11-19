@@ -13,7 +13,7 @@ Hackathon Kongsberg Maritime × Wydział Informatyki.
 | `backend/` | FastAPI, Mosquitto, SQLite, kolejka na ląd, Docker Compose | Szymon |
 | `backend/decision/` | Warstwa decyzyjna (Basal): dział, pilność, raport DPA, osoba; dane testowe i ewaluacja | Maciej |
 | `speech/` | DeepFilterNet + faster-whisper | Mateusz |
-| `llm/` | Formularz, tłumaczenie, reguły, symulator czujników | Maciej |
+| `llm/` | Formularz, tłumaczenie, reguły, symulator czujników | Daniel |
 
 Wspólne kontrakty (koperta zdarzenia, formularz, tematy MQTT, API HTTP) są w
 [`frontend/CLAUDE.md`](frontend/CLAUDE.md), sekcja 6, i w kodzie w [`frontend/src/types.ts`](frontend/src/types.ts).
