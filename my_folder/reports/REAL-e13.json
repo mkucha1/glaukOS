@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e13",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-14T00:36:10+00:00",
+  "wachta": "00-04",
+  "zglaszajacy": {
+    "id": "C04",
+    "imie_nazwisko": "Rajesh Nair",
+    "stanowisko": "trzeci oficer",
+    "dzial": "pokład"
+  },
+  "lokalizacja": "mostek",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 8.9,
+  "tresc": "Ah, the GPS number two, it's giving alarm, position lost sometimes, few seconds, then come back, I inform the captain already"
+}

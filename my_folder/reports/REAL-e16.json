@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e16",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-09T10:22:08+00:00",
+  "wachta": "08-12",
+  "zglaszajacy": {
+    "id": "C15",
+    "imie_nazwisko": "Mark Villanueva",
+    "stanowisko": "pomocnik kucharza",
+    "dzial": "kuchnia"
+  },
+  "lokalizacja": "pralnia",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 9.9,
+  "tresc": "the washing machine in laundry, it's leaking water on floor again, I put towel, but maybe somebody slip"
+}

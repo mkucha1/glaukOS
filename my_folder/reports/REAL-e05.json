@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e05",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-11T04:03:14+00:00",
+  "wachta": "04-08",
+  "zglaszajacy": {
+    "id": "C15",
+    "imie_nazwisko": "Mark Villanueva",
+    "stanowisko": "pomocnik kucharza",
+    "dzial": "kuchnia"
+  },
+  "lokalizacja": "kuchnia",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 12.3,
+  "tresc": "ah sorry, small accident in galley, I cut my finger when cutting meat, not deep, already put plaster, chief cook said to report"
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e03",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-01T07:01:38+00:00",
+  "wachta": "04-08",
+  "zglaszajacy": {
+    "id": "C09",
+    "imie_nazwisko": "Dmytro Shevchuk",
+    "stanowisko": "drugi mechanik",
+    "dzial": "maszynownia"
+  },
+  "lokalizacja": "centrala maszynowni (ECR)",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 17.2,
+  "tresc": "So, main engine cylinder five, exhaust temperature, eh, it is going up since half hour, now four hundred twenty, others three eighty. I will check fuel valve, maybe need change, I tell chief"
+}

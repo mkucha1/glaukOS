@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e02",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-04T16:08:15+00:00",
+  "wachta": "16-20",
+  "zglaszajacy": {
+    "id": "C07",
+    "imie_nazwisko": "Jomar Bautista",
+    "stanowisko": "marynarz OS",
+    "dzial": "pokład"
+  },
+  "lokalizacja": "pokład rufowy",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 12.8,
+  "tresc": "Good morning bosun, ahh the mooring rope at aft, the one at the, ah, poop deck starboard side, it's, how you call, chafing very much, maybe need change"
+}

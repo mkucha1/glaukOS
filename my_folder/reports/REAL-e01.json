@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e01",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-06T14:25:20+00:00",
+  "wachta": "12-16",
+  "zglaszajacy": {
+    "id": "C06",
+    "imie_nazwisko": "Ramon dela Cruz",
+    "stanowisko": "marynarz AB",
+    "dzial": "pokład"
+  },
+  "lokalizacja": "pokład główny",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 13.1,
+  "tresc": "Sir, ah, the paint for the main deck, we finish already the hatch three, ah, tomorrow we continue hatch four if no rain, also we need more thinner, almost finish"
+}

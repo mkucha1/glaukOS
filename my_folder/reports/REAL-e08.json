@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e08",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-10T15:53:32+00:00",
+  "wachta": "12-16",
+  "zglaszajacy": {
+    "id": "C12",
+    "imie_nazwisko": "Arnel Santos",
+    "stanowisko": "motorzysta",
+    "dzial": "maszynownia"
+  },
+  "lokalizacja": "maszynownia — poziom dolny",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 13.5,
+  "tresc": "Sir, the bilge, the bilge alarm in engine room is coming again and again, I check already, no water much, maybe the float switch is, ah, stuck"
+}

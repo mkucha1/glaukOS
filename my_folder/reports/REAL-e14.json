@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e14",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-01T14:51:19+00:00",
+  "wachta": "12-16",
+  "zglaszajacy": {
+    "id": "C09",
+    "imie_nazwisko": "Dmytro Shevchuk",
+    "stanowisko": "drugi mechanik",
+    "dzial": "maszynownia"
+  },
+  "lokalizacja": "spalarnia",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 7.9,
+  "tresc": "Incinerator, ah, not igniting, I think the burner nozzle dirty, I will clean tomorrow, garbage store is getting full"
+}

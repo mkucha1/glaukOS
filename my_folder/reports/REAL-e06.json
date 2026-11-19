@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e06",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-04T01:06:14+00:00",
+  "wachta": "00-04",
+  "zglaszajacy": {
+    "id": "C04",
+    "imie_nazwisko": "Rajesh Nair",
+    "stanowisko": "trzeci oficer",
+    "dzial": "pokład"
+  },
+  "lokalizacja": "pokład łodziowy",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 12.0,
+  "tresc": "Weekly inspection of lifebuoys and lifejackets done, one lifejacket light not working, ah, replaced from spare, all entered in the log"
+}

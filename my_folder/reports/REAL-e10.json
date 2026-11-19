@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e10",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-05T15:02:17+00:00",
+  "wachta": "12-16",
+  "zglaszajacy": {
+    "id": "C09",
+    "imie_nazwisko": "Dmytro Shevchuk",
+    "stanowisko": "drugi mechanik",
+    "dzial": "maszynownia"
+  },
+  "lokalizacja": "maszynownia — poziom górny",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 10.0,
+  "tresc": "Generator number two, ah, I do the oil change and filters, finish, running hours reset, also the, how you say, the turbocharger washing done"
+}

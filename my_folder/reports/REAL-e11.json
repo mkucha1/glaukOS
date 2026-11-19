@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e11",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-11T16:41:01+00:00",
+  "wachta": "16-20",
+  "zglaszajacy": {
+    "id": "C14",
+    "imie_nazwisko": "Edwin Reyes",
+    "stanowisko": "starszy kucharz",
+    "dzial": "kuchnia"
+  },
+  "lokalizacja": "magazyn prowiantowy",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 11.5,
+  "tresc": "Provision, ah, we have only milk for two days, eggs also finish soon, next port is six days, maybe we can order from agent or something"
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e07",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-12T02:00:51+00:00",
+  "wachta": "00-04",
+  "zglaszajacy": {
+    "id": "C03",
+    "imie_nazwisko": "Oleksandr Kovalenko",
+    "stanowisko": "drugi oficer",
+    "dzial": "pokład"
+  },
+  "lokalizacja": "mostek",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 16.9,
+  "tresc": "Handing over the watch, course two three five, speed twelve point five, ah, one fishing vessel on starboard bow, far, CPA more than two miles, nothing else"
+}

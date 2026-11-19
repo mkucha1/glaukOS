@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e09",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-12T16:30:26+00:00",
+  "wachta": "16-20",
+  "zglaszajacy": {
+    "id": "C06",
+    "imie_nazwisko": "Ramon dela Cruz",
+    "stanowisko": "marynarz AB",
+    "dzial": "pokład"
+  },
+  "lokalizacja": "pokład główny",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 11.2,
+  "tresc": "Ah bosun, the gangway, the, the net, safety net, is torn already on one side, before port we need change"
+}

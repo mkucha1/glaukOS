@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e15",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-10T03:10:10+00:00",
+  "wachta": "00-04",
+  "zglaszajacy": {
+    "id": "C06",
+    "imie_nazwisko": "Ramon dela Cruz",
+    "stanowisko": "marynarz AB",
+    "dzial": "pokład"
+  },
+  "lokalizacja": "pokład główny",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 9.2,
+  "tresc": "Bosun, the fire hose at the, ah, the main deck port side station number four, the coupling is broken, cannot connect"
+}

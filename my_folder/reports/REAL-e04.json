@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1",
+  "id": "REAL-e04",
+  "statek": "MV Odra Trader",
+  "czas_utc": "2026-11-07T09:03:39+00:00",
+  "wachta": "08-12",
+  "zglaszajacy": {
+    "id": "C14",
+    "imie_nazwisko": "Edwin Reyes",
+    "stanowisko": "starszy kucharz",
+    "dzial": "kuchnia"
+  },
+  "lokalizacja": "chłodnia prowiantowa",
+  "kanal": "glos",
+  "urzadzenie": "telefon",
+  "jezyk": "en",
+  "nagranie_s": 13.6,
+  "tresc": "Chief cook here. Ah, the vegetable chiller, the temperature is plus nine, I think compressor problem, all vegetable inside, maybe two days and spoiled. Please engine check, thank you"
+}
