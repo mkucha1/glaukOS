@@ -18,3 +18,4 @@ __pycache__/
 .pytest_cache/
 data/*_clean/
 data/synth_cmp/
+data/sample15/

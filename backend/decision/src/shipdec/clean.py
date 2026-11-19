@@ -125,3 +125,56 @@ def flips(results_a: str | Path, results_b: str | Path, limit: int = 15) -> str:
             out.append(f"- {q}: wzorzec {d['gold']}, surowe -> {ra['decisions'][q]['pred']}, czyste -> {d['pred']}\n"
                        f"    surowe: {ra['text'][:150]}\n    czyste: {rb['text'][:150]}")
     return "\n".join(out)
+
+
+def build_sample(src_dir: str | Path, out_dir: str | Path, sample_file: str | Path) -> int:
+    """Podzbiór naszego zbioru realistycznego wg listy id szablonów (config/sample15.yaml)."""
+    from .config import load_yaml
+    from .generate import write_dataset
+    wanted = list(load_yaml(sample_file)["probka"])
+    reports, labels = load_dataset(src_dir)
+    by_tpl = {lab["template"]: (r, lab) for r, lab in zip(reports, labels)}
+    missing = [t for t in wanted if t not in by_tpl]
+    if missing:
+        raise SystemExit(f"brak w {src_dir}: {missing} (najpierw: shipdec realistic)")
+    out_dir = Path(out_dir)
+    if out_dir.exists():
+        import shutil
+        shutil.rmtree(out_dir)
+    write_dataset([by_tpl[t][0] for t in wanted], [by_tpl[t][1] for t in wanted], out_dir)
+    return len(wanted)
+
+
+def side_by_side(results_a: str | Path, results_b: str | Path, data_dir_b: str | Path | None = None) -> str:
+    """Przed i po oczyszczeniu, zgłoszenie po zgłoszeniu (markdown): treść i każda decyzja."""
+    from .generate import read_jsonl
+    b_by_id = {r["report_id"]: r for r in read_jsonl(results_b)}
+    show = lambda q, k: f"P{3 - int(k)}" if q == "pilnosc" else k      # klucz Basala "0".."2" -> P3..P1
+    mark = lambda q, d: f"{show(q, d['pred'])} ({d['confidence']:.2f}) {'✓' if d['correct'] else '✗'}"
+    out = ["# Basal: przed i po oczyszczeniu treści (qwen)", "",
+           "✓/✗ = zgodność z etykietą wzorcową, w nawiasie pewność Basala.", ""]
+    tot_a = tot_b = n = 0
+    for ra in read_jsonl(results_a):
+        rb = b_by_id.get(ra["report_id"])
+        if not rb:
+            continue
+        unclear = ""
+        if data_dir_b:
+            p = Path(data_dir_b) / "reports" / f"{ra['report_id']}.json"
+            if p.exists() and json.loads(p.read_text(encoding="utf-8"))["_meta"].get("cleaning", {}).get("unclear"):
+                unclear = " — qwen: *niejednoznaczne*"
+        ok_a = sum(d["correct"] for d in ra["decisions"].values())
+        ok_b = sum(d["correct"] for d in rb["decisions"].values())
+        tot_a, tot_b, n = tot_a + ok_a, tot_b + ok_b, n + len(ra["decisions"])
+        out += [f"## {ra['template']} ({ra.get('kategoria')}) — trafne: przed {ok_a}, po {ok_b}{unclear}", "",
+                f"**przed:** {ra['text']}", "", f"**po:** {rb['text']}", "",
+                "| decyzja | wzorzec | przed | po |", "|---|---|---|---|"]
+        for q, da in ra["decisions"].items():
+            db = rb["decisions"][q]
+            flag = " ⬆" if db["correct"] and not da["correct"] else (" ⬇" if da["correct"] and not db["correct"] else "")
+            out.append(f"| {q}{flag} | {show(q, da['gold'])} | {mark(q, da)} | {mark(q, db)} |")
+        out.append("")
+    if n:
+        out.insert(3, f"**Razem trafnych decyzji: przed {tot_a}/{n} ({tot_a / n:.0%}), po {tot_b}/{n} ({tot_b / n:.0%}).** "
+                      "⬆ = oczyszczenie naprawiło decyzję, ⬇ = zepsuło.\n")
+    return "\n".join(out)

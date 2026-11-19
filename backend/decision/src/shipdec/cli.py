@@ -56,11 +56,18 @@ def main(argv: list[str] | None = None) -> None:
     c.add_argument("--limit", type=int, default=None)
     c.add_argument("--od-nowa", action="store_true", help="przetwórz też zgłoszenia, które mają już czystą wersję")
 
+    sp = sub.add_parser("sample", help="wybierz reprezentatywną próbkę z data/realistic (config/sample15.yaml)")
+    sp.add_argument("--data-dir", default=str(ROOT / "data" / "realistic"))
+    sp.add_argument("--out-dir", default=str(ROOT / "data" / "sample15"))
+    sp.add_argument("--list", default=str(ROOT / "config" / "sample15.yaml"))
+
     m = sub.add_parser("compare", help="porównaj dwie ewaluacje (np. surowe vs oczyszczone)")
     m.add_argument("a", help="wyniki A (results/....jsonl)")
     m.add_argument("b", help="wyniki B (results/....jsonl)")
     m.add_argument("--names", nargs=2, default=["surowe", "oczyszczone"])
     m.add_argument("--przyklady", type=int, default=10, help="ile zgłoszeń ze zmienioną trafnością pokazać")
+    m.add_argument("--md", default=None, help="zapisz porównanie zgłoszenie po zgłoszeniu (markdown) do pliku")
+    m.add_argument("--clean-dir", default=None, help="folder oczyszczonego zbioru (oznacza 'niejednoznaczne')")
 
     k = sub.add_parser("queue", help="pokaż kolejkę wysyłki dla wyników ewaluacji")
     k.add_argument("--results", default=str(ROOT / "results" / "results.jsonl"))
@@ -94,6 +101,14 @@ def main(argv: list[str] | None = None) -> None:
         print(compare(sa, sb, *a.names))
         print()
         print(flips(a.a, a.b, a.przyklady))
+        if a.md:
+            from .clean import side_by_side
+            Path(a.md).write_text(side_by_side(a.a, a.b, a.clean_dir), encoding="utf-8")
+            print(f"\nprzed/po zgłoszenie po zgłoszeniu -> {a.md}")
+        return
+    if a.cmd == "sample":
+        from .clean import build_sample
+        print(f"próbka {build_sample(a.data_dir, a.out_dir, a.list)} zgłoszeń -> {a.out_dir}")
         return
     if a.cmd == "queue":
         rows = order(read_jsonl(a.results))
