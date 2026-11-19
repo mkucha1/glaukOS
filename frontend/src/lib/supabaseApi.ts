@@ -2,6 +2,8 @@
 // Row-level security in supabase/migrations decides who may read and write what.
 import { config, nowIso, uuid } from '../config';
 import type { ApiClient, AudioUpload } from './api';
+import { localRecordings, type Recording } from './recordings';
+import type { ReportView } from './store';
 import type { CrewMember } from './crew';
 import { HttpError } from './errors';
 import { localHandover } from './handover';
@@ -175,6 +177,24 @@ export class SupabaseApiClient implements ApiClient {
     const id = await this.uid();
     const { error, status } = await requireSupabase().from('crew').update({ on_duty: on }).eq('id', id);
     if (error) fail(error, status);
+  }
+
+  async recordings(r: ReportView): Promise<Recording[]> {
+    const paths = r.events
+      .filter((e) => e.type === 'report.recorded' || e.type === 'report.clarification_answered')
+      .map((e) => ({ type: e.type, path: (e.payload as { audio_path?: string } | null)?.audio_path }))
+      .filter((x): x is { type: ShipEvent['type']; path: string } => !!x.path);
+    if (!paths.length) return localRecordings(r);
+    const { data, error } = await requireSupabase()
+      .storage.from(BUCKET)
+      .createSignedUrls(
+        paths.map((p) => p.path),
+        60 * 30,
+      );
+    if (error) fail(error as SbError);
+    return (data ?? [])
+      .map((d, i) => ({ label: paths[i].type === 'report.recorded' ? 'Report' : 'Answer', url: d.signedUrl ?? '' }))
+      .filter((x) => x.url);
   }
 
   async loadCrew(): Promise<CrewMember[]> {

@@ -1,6 +1,7 @@
 // Ranks on board. Mirrors public.positions in supabase/migrations (keep both in sync).
 // The database enforces these rules with RLS; the UI uses them only to hide what you cannot do.
 import type { SectorId } from './ship';
+import { translate } from './i18n';
 
 export type Department = 'command' | 'deck' | 'engine' | 'catering';
 
@@ -62,7 +63,10 @@ export const DEPARTMENTS: { id: Department; label: string }[] = [
 ];
 
 export const positionById = (id?: string) => POSITIONS.find((p) => p.id === id);
-export const positionLabel = (id?: string) => positionById(id)?.label ?? (id ?? '').replace(/_/g, ' ');
+export const positionLabel = (id?: string) => {
+  const p = positionById(id);
+  return p ? translate(p.label) : (id ?? '').replace(/_/g, ' ');
+};
 
 /** Department of an actor string like "2nd_engineer:mateusz"; unknown positions count as command. */
 export const departmentOfActor = (actor?: string): Department => positionById(actor?.split(':')[0])?.department ?? 'command';

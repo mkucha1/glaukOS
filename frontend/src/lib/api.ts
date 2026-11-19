@@ -2,6 +2,10 @@
 // If the backend answers differently than section 6.5, adapt it here, not in types.ts.
 import { config } from '../config';
 import type { CrewMember } from './crew';
+import type { ReportView } from './store';
+import { localRecordings, type Recording } from './recordings';
+
+export type { Recording };
 import { mockServer } from './mock';
 import type { Profile } from './profile';
 import { SupabaseApiClient } from './supabaseApi';
@@ -40,6 +44,8 @@ export interface ApiClient {
   signOut(): Promise<void>;
   setOnDuty(on: boolean, p: Profile): Promise<void>;
   loadCrew(): Promise<CrewMember[]>;
+  /** Playable links to the report's audio (the report itself, then any spoken answers). */
+  recordings(r: ReportView): Promise<Recording[]>;
 }
 
 export const extFor = (mime: string) => (mime.includes('mp4') || mime.includes('aac') ? 'm4a' : 'webm');
@@ -117,6 +123,10 @@ class HttpApiClient implements ApiClient {
   async loadCrew() {
     return [];
   }
+  async recordings(r: ReportView) {
+    // Onboard server keeps the audio on the ship: GET /api/reports/{id}/audio
+    return [{ label: 'Report', url: `${config.apiUrl}/api/reports/${r.report_id}/audio` }];
+  }
 
   async handover(watch?: string) {
     const q = watch ? `?watch=${encodeURIComponent(watch)}` : '';
@@ -160,6 +170,9 @@ class MockApiClient implements ApiClient {
   }
   loadCrew() {
     return mockServer.crew();
+  }
+  recordings(r: ReportView) {
+    return localRecordings(r);
   }
   handover(watch?: string) {
     return mockServer.handover(watch);

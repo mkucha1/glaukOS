@@ -13,6 +13,7 @@ import { useVisibleReports } from '../../lib/visibility';
 import type { ReportStatus } from '../../types';
 import { PushToTalk } from './PushToTalk';
 import { ShiftCard } from './ShiftCard';
+import { useT } from '../../lib/i18n';
 
 interface Row {
   report_id: string;
@@ -31,6 +32,7 @@ export function MechanicPage() {
   const outbox = useLiveQuery(() => db.outbox.orderBy('created_at').reverse().toArray(), [], [] as OutboxItem[]);
   const pendingId = useRef<string | null>(null);
   const [acking, setAcking] = useState<string | null>(null);
+  const tr = useT();
 
   const mine = useMemo(() => reports.filter((r) => r.actor === me), [reports, me]);
   const question = mine.find((r) => r.status === 'needs_clarification' && r.clarification);
@@ -55,7 +57,7 @@ export function MechanicPage() {
       report_id: r.report_id,
       created_at: r.created_at,
       status: r.status,
-      title: r.form?.equipment ?? r.transcript?.text ?? 'Processing voice report…',
+      title: r.form?.equipment ?? r.transcript?.text ?? tr('Processing voice report…'),
       offline: false,
       priority: r.form?.priority,
     }));
@@ -65,7 +67,7 @@ export function MechanicPage() {
         report_id: o.report_id,
         created_at: o.created_at,
         status: o.status === 'sent' ? 'recorded' : 'queued',
-        title: o.status === 'sent' ? 'Uploaded, waiting for server…' : 'Voice report saved on phone',
+        title: tr(o.status === 'sent' ? 'Uploaded, waiting for server…' : 'Voice report saved on phone'),
         offline: o.status !== 'sent',
         failed: o.status === 'failed' ? o.last_error : undefined,
       });
@@ -112,7 +114,7 @@ export function MechanicPage() {
     try {
       await api.ackTask(r.report_id, me);
     } catch {
-      alert('No connection to the ship server. Try again in a moment.');
+      alert(tr('No connection to the ship server. Try again in a moment.'));
     } finally {
       setAcking(null);
     }
@@ -124,13 +126,13 @@ export function MechanicPage() {
         <Card className="border-2 border-steel bg-steel/15">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-[13px] font-medium text-steel">Question about your report</div>
+              <div className="text-[13px] font-medium text-steel">{tr('Question about your report')}</div>
               <div className="mt-1 text-2xl font-semibold leading-tight">{activeQuestion.clarification.question}</div>
             </div>
             {speechSupported && (
               <Btn
                 variant="ghost"
-                aria-label="Repeat question"
+                aria-label={tr('Repeat question')}
                 onClick={() => speak(activeQuestion.clarification!.question, toBcp47(activeQuestion.transcript?.lang))}
               >
                 🔊
@@ -146,14 +148,14 @@ export function MechanicPage() {
               ))}
             </div>
           )}
-          <p className="mt-3 text-sm text-cream/70">…or hold the button below and answer by voice.</p>
+          <p className="mt-3 text-sm text-cream/70">{tr('…or hold the button below and answer by voice.')}</p>
         </Card>
       )}
 
       <PushToTalk
         onStart={onStart}
         onRecorded={onRecorded}
-        label={activeQuestion ? 'Hold to answer' : 'Hold to report'}
+        label={tr(activeQuestion ? 'Hold to answer' : 'Hold to report')}
         accent={activeQuestion ? 'question' : 'report'}
       />
 
@@ -161,7 +163,7 @@ export function MechanicPage() {
 
       {tasks.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-[15px] font-semibold">My tasks</h2>
+          <h2 className="text-[15px] font-semibold">{tr('My tasks')}</h2>
           {tasks.map((t) => (
             <Card key={t.report_id} className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
@@ -173,7 +175,7 @@ export function MechanicPage() {
               </div>
               {t.status === 'assigned' && (
                 <Btn variant="ok" className="min-h-14 px-5 text-lg" disabled={acking === t.report_id} onClick={() => ack(t)}>
-                  Accept
+                  {tr('Accept')}
                 </Btn>
               )}
             </Card>
@@ -182,8 +184,8 @@ export function MechanicPage() {
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-[15px] font-semibold">My reports</h2>
-        {rows.length === 0 && <p className="text-cream/45">No reports yet. Hold the button and describe what you see.</p>}
+        <h2 className="text-[15px] font-semibold">{tr('My reports')}</h2>
+        {rows.length === 0 && <p className="text-cream/45">{tr('No reports yet. Hold the button and describe what you see.')}</p>}
         {rows.map((r) => (
           <div
             key={r.report_id}
@@ -197,7 +199,7 @@ export function MechanicPage() {
               <div className="truncate font-semibold">{r.title}</div>
               {r.failed && (
                 <button className="text-xs text-alert underline" onClick={() => retryFailed(r.report_id)}>
-                  Rejected by server ({r.failed}). Retry
+                  {tr('Rejected by server ({e}). Retry', { e: r.failed })}
                 </button>
               )}
             </div>

@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import type { ReportStatus } from '../types';
+import { useT } from '../lib/i18n';
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
@@ -19,9 +20,12 @@ const STATUS: Record<ReportStatus, { label: string; cls: string }> = {
 };
 
 export function StatusBadge({ status }: { status: ReportStatus }) {
+  const t = useT();
   const s = STATUS[status];
   return (
-    <span className={cx('inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-xs font-medium', s.cls)}>{s.label}</span>
+    <span className={cx('inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-xs font-medium', s.cls)}>
+      {t(s.label)}
+    </span>
   );
 }
 

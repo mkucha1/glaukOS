@@ -9,7 +9,7 @@ import {
   personRole,
   relatedTo,
   reportsFor,
-  sectorById,
+  sectorLabel,
   sfiGroup,
   SFI_GROUPS,
   type Focus,
@@ -19,6 +19,8 @@ import {
 import { MindMap, type MindNode, type Tone } from './MindMap';
 import { useCrew } from '../../lib/crew';
 import { positionLabel } from '../../lib/positions';
+import { translate } from '../../lib/i18n';
+import { RecordingPlayer } from '../../components/RecordingPlayer';
 
 const TONE: Record<Severity, Tone> = { action: 'alert', open: 'warn', progress: 'steel', resolved: 'ok', rejected: 'muted' };
 const LANG: Record<string, string> = { pl: 'Polish', tl: 'Tagalog', en: 'English', uk: 'Ukrainian', ru: 'Russian', fil: 'Filipino' };
@@ -27,7 +29,7 @@ function SeverityChip({ s }: { s: Severity }) {
   return (
     <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-ink/30 px-2.5 text-[11px] font-semibold">
       <span className="h-2 w-2 rounded-full" style={{ background: SEVERITY[s].color }} />
-      {SEVERITY[s].label}
+      {translate(SEVERITY[s].label)}
     </span>
   );
 }
@@ -75,7 +77,7 @@ function ReportFocus({ r, all, onFocus }: { r: ShipReport; all: ShipReport[]; on
     {
       id: 'where',
       caption: 'Located in',
-      label: sectorById(r.sector).label,
+      label: sectorLabel(r.sector),
       tone: 'steel',
       onClick: () => onFocus({ kind: 'sector', id: r.sector }),
     },
@@ -119,7 +121,7 @@ function ReportFocus({ r, all, onFocus }: { r: ShipReport; all: ShipReport[]; on
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <Eyebrow>
-            {sectorById(r.sector).label} · {ago(r.created_at)}
+            {sectorLabel(r.sector)} · {ago(r.created_at)}
           </Eyebrow>
           <h2 className="mt-1.5 text-xl font-semibold leading-tight tracking-tight">{r.form?.equipment ?? 'Voice report'}</h2>
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -141,6 +143,8 @@ function ReportFocus({ r, all, onFocus }: { r: ShipReport; all: ShipReport[]; on
           )}
         </div>
       )}
+
+      <RecordingPlayer report={r} />
 
       <div>
         <Eyebrow className="mb-3">Connections</Eyebrow>
@@ -178,7 +182,7 @@ function GroupFocus({
       break;
     case 'sector':
       caption = 'Sector';
-      title = sectorById(focus.id).label;
+      title = sectorLabel(focus.id);
       break;
     case 'system':
       caption = `SFI group ${focus.group}`;
@@ -190,14 +194,14 @@ function GroupFocus({
       break;
     case 'severity':
       caption = 'Filter';
-      title = SEVERITY[focus.value].label;
+      title = translate(SEVERITY[focus.value].label);
       break;
   }
   const shown = list.slice(0, 8);
   const roster = useCrew();
   const here = focus.kind === 'sector' ? roster.filter((c) => c.station === focus.id) : [];
   const at = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const nodes = shown.map((r) => reportNode(r, `${focus.kind === 'sector' ? '' : `${sectorById(r.sector).label} · `}${rel(r)}`, onFocus));
+  const nodes = shown.map((r) => reportNode(r, `${focus.kind === 'sector' ? '' : `${sectorLabel(r.sector)} · `}${rel(r)}`, onFocus));
 
   return (
     <div className="enter flex flex-col gap-5" key={JSON.stringify(focus)}>
@@ -211,7 +215,7 @@ function GroupFocus({
               .map((s) => (
                 <span key={s} className="inline-flex h-6 items-center gap-1.5 rounded-full bg-ink/30 px-2.5 text-[11px] font-semibold">
                   <span className="h-2 w-2 rounded-full" style={{ background: SEVERITY[s].color }} />
-                  {counts(s)} {SEVERITY[s].label.toLowerCase()}
+                  {counts(s)} {translate(SEVERITY[s].label).toLowerCase()}
                 </span>
               ))}
           </div>
@@ -288,7 +292,7 @@ function Attention({ all, onFocus }: { all: ShipReport[]; onFocus: (f: Focus) =>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold">{r.form?.equipment ?? 'Voice report'}</span>
                   <span className="block truncate text-xs text-cream/55">
-                    {sectorById(r.sector).label} · {r.form?.defect ?? r.transcript?.text} · {ago(r.updated_at)}
+                    {sectorLabel(r.sector)} · {r.form?.defect ?? r.transcript?.text} · {ago(r.updated_at)}
                   </span>
                 </span>
                 {r.form && <PriorityBadge p={r.form.priority} />}

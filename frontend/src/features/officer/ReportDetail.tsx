@@ -7,6 +7,7 @@ import { DEPARTMENTS, canApproveDept, departmentOfActor, positionLabel } from '.
 import { actorOf, useProfile } from '../../lib/profile';
 import { AWAITING, type ReportView } from '../../lib/store';
 import type { ReportForm } from '../../types';
+import { RecordingPlayer } from '../../components/RecordingPlayer';
 
 const FIELDS: { key: keyof ReportForm; label: string; type?: 'number' | 'text' }[] = [
   { key: 'equipment', label: 'Equipment' },
@@ -120,14 +121,14 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
         </Card>
       </div>
 
+      <RecordingPlayer report={report} />
+
       {model && (
         <Card className={cx('border-2', model.needs_officer ? 'border-warn/60' : 'border-ok/50')}>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h2 className="text-[15px] font-semibold">Model decision</h2>
             <span className="text-xs text-cream/50">{model.model}</span>
-            {model.dpa_report && (
-              <span className="rounded-md bg-alert/20 px-2 py-0.5 text-xs font-bold text-alert">DPA report</span>
-            )}
+            {model.dpa_report && <span className="rounded-md bg-alert/20 px-2 py-0.5 text-xs font-bold text-alert">DPA report</span>}
             <span className={cx('ml-auto text-xs font-bold', model.needs_officer ? 'text-warn' : 'text-ok')}>
               {model.needs_officer
                 ? `Check: ${model.needs_review.map((k) => DECISION_LABELS[k] ?? k).join(', ')}`
@@ -227,11 +228,7 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
         <Card className="sticky bottom-2 z-10 flex flex-wrap items-end gap-3 border-cream/20 bg-navy-deep/95 backdrop-blur">
           <label className="flex min-w-48 flex-1 flex-col gap-1">
             <span className="text-xs text-cream/60">Assign to</span>
-            <select
-              className={input}
-              value={assignee}
-              onChange={(e) => setPicked(e.target.value)}
-            >
+            <select className={input} value={assignee} onChange={(e) => setPicked(e.target.value)}>
               {crew.map((c) => (
                 <option key={c.actor} value={c.actor}>
                   {shortActor(c.actor)}

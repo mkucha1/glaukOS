@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { config } from '../config';
+import { config, switchBackend } from '../config';
+import { clearEvents } from '../lib/store';
 import { db } from '../lib/db';
 import { useBusState, useLiveQuery, useSyncStatus } from '../lib/hooks';
 import { isDeadZone, mockServer, setDeadZone } from '../lib/mock';
 import { crewByActor, useCrew } from '../lib/crew';
 import { isApprover } from '../lib/positions';
 import { actorOf, roleLabel, useProfile } from '../lib/profile';
-import { sectorById } from '../lib/ship';
+import { sectorLabel } from '../lib/ship';
 import { api } from '../lib/api';
 import { Avatar, Logo, cx } from '../components/ui';
 
@@ -149,7 +150,13 @@ function StatusButton() {
       {open && (
         <div className="popover absolute right-0 top-12 z-50 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-cream/15 bg-navy-deep p-1.5 shadow-2xl shadow-ink/60">
           {row(
-            'Ship server',
+            config.mock
+              ? 'Demo on this device'
+              : config.overridden
+                ? 'Ship server'
+                : config.backend === 'supabase'
+                  ? 'GlaukOS cloud'
+                  : 'Ship server',
             c.bus === 'connected'
               ? 'Connected over ship Wi-Fi'
               : c.bus === 'connecting'
@@ -208,6 +215,23 @@ function StatusButton() {
               }}
             >
               <span className="font-medium">Reset demo data</span>
+            </button>
+          )}
+          {(config.builtBackend !== 'mock' || config.overridden) && (
+            <button
+              className={action}
+              onClick={async () => {
+                // Plan B: the whole scenario runs in this browser, no network needed.
+                switchBackend(config.mock ? null : { backend: 'mock' });
+                await clearEvents();
+                location.reload();
+              }}
+            >
+              <span>
+                <span className="block font-medium">Offline demo mode</span>
+                <span className="block text-[13px] text-cream/55">Plan B: runs on this device without any server</span>
+              </span>
+              <Toggle on={config.mock} tone="warn" />
             </button>
           )}
         </div>
@@ -276,7 +300,7 @@ function AccountButton({ variant }: { variant: 'top' | 'tab' }) {
           <div className="px-3 py-2.5">
             <div className="font-semibold">{profile.name}</div>
             <div className="text-[13px] text-cream/55">
-              {roleLabel(profile.position)} · {sectorById(profile.station).label}
+              {roleLabel(profile.position)} · {sectorLabel(profile.station)}
             </div>
           </div>
           <button

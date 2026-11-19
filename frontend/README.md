@@ -60,6 +60,31 @@ WebSocket must use a certificate the phone trusts as well.
 
 Install the app: Android Chrome → menu → Install app; iOS Safari → Share → Add to Home Screen.
 
+## On the phones (PWA)
+
+GlaukOS installs like an app from the production address, no app store:
+
+- **Android (Chrome):** open the address → menu ⋮ → **Install app**.
+- **iPhone (Safari):** open the address → Share → **Add to Home Screen**. (Must be Safari.)
+
+After the first open the app works without a network: the screens load from the phone, recordings are
+saved on the phone and sent automatically when the ship server is reachable again. Test it in airplane
+mode: record a report, it shows *Queued offline*, switch airplane mode off, it goes through without a duplicate.
+
+### Switching server without a rebuild
+
+Add parameters to the address once; the phone remembers them:
+
+| Address | What it does |
+| --- | --- |
+| `…/?backend=mock` | **Plan B.** Offline demo: the whole scenario runs on the phone, no server. Also in the status menu: *Offline demo mode*. |
+| `…/?backend=supabase&supabase_url=https://<ship-server>&supabase_key=<publishable key>` | Use a Supabase running on the ship's laptop (true offline: ship Wi-Fi only). |
+| `…/?backend=http&api_url=https://<ship-server>&mqtt_url=wss://<ship-server>/mqtt` | Use the FastAPI + MQTT onboard server. |
+| `…/?backend=default` | Back to the production backend. |
+
+A ship server on the local network needs HTTPS with a certificate the phone trusts (microphone and
+service worker require it), e.g. mkcert's root CA installed on each phone.
+
 ## Layout
 
 ```

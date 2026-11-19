@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cx } from '../../components/ui';
 import { recorder, type Recording } from '../../lib/recorder';
+import { useT } from '../../lib/i18n';
 
 type Phase = 'idle' | 'starting' | 'recording' | 'saved' | 'too_short' | 'error';
 
@@ -22,6 +23,7 @@ export function PushToTalk({
   accent?: 'report' | 'question';
 }) {
   const [phase, setPhase] = useState<Phase>('idle');
+  const t = useT();
   const [micError, setMicError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const pressing = useRef(false);
@@ -115,15 +117,15 @@ export function PushToTalk({
           <>
             <span className="h-5 w-5 animate-pulse rounded-full bg-ink motion-reduce:animate-none" />
             <span className="font-mono text-5xl font-semibold tabular-nums">{(elapsed / 1000).toFixed(1)}s</span>
-            <span className="text-lg font-medium">Release to save</span>
+            <span className="text-lg font-medium">{t('Release to save')}</span>
           </>
         ) : phase === 'saved' ? (
           <>
             <span className="text-6xl font-semibold">✓</span>
-            <span className="text-3xl font-semibold tracking-tight">Saved on phone</span>
+            <span className="text-3xl font-semibold tracking-tight">{t('Saved on phone')}</span>
           </>
         ) : phase === 'too_short' ? (
-          <span className="text-2xl font-semibold">Hold longer</span>
+          <span className="text-2xl font-semibold">{t('Hold longer')}</span>
         ) : (
           <>
             <svg viewBox="0 0 24 24" className="h-16 w-16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
@@ -136,7 +138,7 @@ export function PushToTalk({
       </button>
       {micError && (
         <button onClick={initMic} className="rounded-xl border border-alert px-4 py-3 text-left text-sm font-semibold text-alert">
-          Microphone unavailable: {micError}. Tap to retry.
+          {t('Microphone unavailable: {e}. Tap to retry.', { e: micError })}
         </button>
       )}
     </div>

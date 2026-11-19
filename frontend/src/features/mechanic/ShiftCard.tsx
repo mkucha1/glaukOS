@@ -3,7 +3,8 @@ import { cx } from '../../components/ui';
 import { api } from '../../lib/api';
 import { crewByActor, useCrew } from '../../lib/crew';
 import { actorOf, useProfile } from '../../lib/profile';
-import { sectorById } from '../../lib/ship';
+import { sectorLabel } from '../../lib/ship';
+import { useT } from '../../lib/i18n';
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -13,6 +14,7 @@ export function ShiftCard() {
   const crew = useCrew();
   const me = profile ? crewByActor(crew, actorOf(profile)) : undefined;
   const [busy, setBusy] = useState(false);
+  const t = useT();
   if (!profile) return null;
   const onDuty = me?.on_duty ?? true;
   const colleagues = crew.filter((c) => c.station === profile.station && c.actor !== actorOf(profile) && c.on_duty);
@@ -23,7 +25,7 @@ export function ShiftCard() {
       await api.setOnDuty(!onDuty, profile);
       navigator.vibrate?.(60);
     } catch (e) {
-      alert(`Could not update your shift: ${(e as Error).message}`);
+      alert(t('Could not update your shift: {e}', { e: (e as Error).message }));
     } finally {
       setBusy(false);
     }
@@ -39,11 +41,11 @@ export function ShiftCard() {
       <span className={cx('h-3 w-3 shrink-0 rounded-full', onDuty ? 'bg-ok' : 'bg-cream/40')} />
       <div className="min-w-0 flex-1">
         <div className="text-[15px] font-semibold">
-          {onDuty ? 'On duty' : 'Resting'} · {sectorById(profile.station).label}
+          {t(onDuty ? 'On duty' : 'Resting')} · {sectorLabel(profile.station)}
         </div>
         <div className="truncate text-[13px] text-cream/55">
-          {me ? `Since ${time(me.duty_changed_at)}` : 'Shift started'}
-          {colleagues.length > 0 && ` · with ${colleagues.map((c) => c.name).join(', ')}`}
+          {me ? t('Since {t}', { t: time(me.duty_changed_at) }) : t('Shift started')}
+          {colleagues.length > 0 && t(' · with {names}', { names: colleagues.map((c) => c.name).join(', ') })}
         </div>
       </div>
       <button
@@ -54,7 +56,7 @@ export function ShiftCard() {
           onDuty ? 'bg-cream/10 text-cream hover:bg-cream/15' : 'bg-cream text-navy',
         )}
       >
-        {onDuty ? 'End shift' : 'Start shift'}
+        {t(onDuty ? 'End shift' : 'Start shift')}
       </button>
     </div>
   );

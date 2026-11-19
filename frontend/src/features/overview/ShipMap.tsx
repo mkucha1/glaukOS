@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StatusBadge } from '../../components/ui';
 import type { CrewMember } from '../../lib/crew';
 import { SECTORS, SEVERITY, VIEW_H, VIEW_W, VIEW_X0, ago, type Focus, type SectorId, type Severity, type ShipReport } from '../../lib/ship';
+import { translate } from '../../lib/i18n';
 
 const LABEL_END = new Set<SectorId>(['bridge', 'cabins', 'galley', 'steering']);
 const ZONES: { id: string; sectors: SectorId[]; at: [number, number] }[] = [
@@ -385,7 +386,7 @@ export function ShipMap({
               : p.count !== undefined && reports.some((r) => r.sector === p.sector && highlight.has(r.report_id)))
           : false;
         const label = p.report
-          ? `${p.report.form?.equipment ?? 'Voice report'} — ${SEVERITY[p.severity].label}`
+          ? `${p.report.form?.equipment ?? 'Voice report'} — ${translate(SEVERITY[p.severity].label)}`
           : `${p.count} report${p.count === 1 ? '' : 's'} in ${SECTORS.find((s) => s.id === p.sector)?.label}`;
         return (
           <button

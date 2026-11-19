@@ -2,6 +2,7 @@
 // how urgent it is, and how reports connect to each other (the "brain").
 import type { ReportView } from './store';
 import type { ReportStatus } from '../types';
+import { translate } from './i18n';
 
 /** viewBox: x from VIEW_X0, so labels fit left of the stern. */
 export const VIEW_X0 = -40;
@@ -49,6 +50,8 @@ export const SECTORS: Sector[] = [
 ];
 
 export const sectorById = (id: SectorId) => SECTORS.find((s) => s.id === id)!;
+/** Compartment name in the interface language. */
+export const sectorLabel = (id: SectorId) => translate(sectorById(id).label);
 
 // ---------- report → sector ----------
 
@@ -223,14 +226,35 @@ export const personName = (actor?: string) => {
   const name = actor.split(':')[1] ?? actor;
   return name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, ' ');
 };
-export const personRole = (actor?: string) => (actor?.split(':')[0] ?? '').replace(/_/g, ' ');
+export const personRole = (actor?: string) => {
+  const id = actor?.split(':')[0] ?? '';
+  const label = POSITION_LABELS[id];
+  return label ? translate(label) : id.replace(/_/g, ' ');
+};
+
+const POSITION_LABELS: Record<string, string> = {
+  captain: 'Captain',
+  chief_officer: 'Chief Officer',
+  chief_engineer: 'Chief Engineer',
+  '2nd_officer': '2nd Officer',
+  '2nd_engineer': '2nd Engineer',
+  '3rd_officer': '3rd Officer',
+  '3rd_engineer': '3rd Engineer',
+  electrician: 'Electro-Technical Officer',
+  bosun: 'Bosun',
+  chief_cook: 'Chief Cook',
+  ab: 'Able Seaman',
+  oiler: 'Oiler',
+  motorman: 'Motorman',
+  messman: 'Messman',
+};
 
 export function ago(iso: string, now = Date.now()) {
   const m = Math.round((now - new Date(iso).getTime()) / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m} min ago`;
+  if (m < 1) return translate('just now');
+  if (m < 60) return translate('{n} min ago', { n: m });
   const h = Math.floor(m / 60);
-  return h < 24 ? `${h} h ago` : `${Math.floor(h / 24)} d ago`;
+  return h < 24 ? translate('{n} h ago', { n: h }) : translate('{n} d ago', { n: Math.floor(h / 24) });
 }
 
 // ---------- metrics ----------

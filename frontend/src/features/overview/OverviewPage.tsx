@@ -10,6 +10,7 @@ import { SEVERITY, enrich, relatedTo, reportsFor, sameFocus, type Focus, type Se
 import { FocusPanel } from './FocusPanel';
 import { ShipMap } from './ShipMap';
 import { Summary } from './Summary';
+import { translate } from '../../lib/i18n';
 
 const FILTERS: Severity[] = ['action', 'open', 'progress', 'resolved'];
 const vesselName = config.shipId.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -99,7 +100,7 @@ export function OverviewPage() {
                   className={cx('h-2.5 w-2.5 rounded-full transition-opacity duration-150', !on && 'opacity-35')}
                   style={{ background: SEVERITY[s].color }}
                 />
-                {SEVERITY[s].label}
+                {translate(SEVERITY[s].label)}
                 <span className="font-mono text-xs tabular-nums text-cream/55">{count(s)}</span>
               </button>
             );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { config } from '../config';
 import { api } from '../lib/api';
 import { bus } from '../lib/mqtt';
 import { startOutbox } from '../lib/outbox';
@@ -16,7 +17,19 @@ import { HandoverPage } from '../features/handover/HandoverPage';
 /** Wire the transports into the store: cache → server catch-up → live MQTT. */
 function useBootstrap(profile: Profile | null) {
   useEffect(() => {
-    void loadCachedEvents();
+    void (async () => {
+      // The local cache belongs to one backend; never show demo reports next to real ones.
+      const sig = `${config.backend}|${config.supabaseUrl}|${config.apiUrl}`;
+      let prev: string | null = null;
+      try {
+        prev = localStorage.getItem('glaukos.lastBackend');
+        localStorage.setItem('glaukos.lastBackend', sig);
+      } catch {
+        /* ignore */
+      }
+      if (prev !== sig) await clearEvents();
+      await loadCachedEvents();
+    })();
     void startOutbox();
   }, []);
 
