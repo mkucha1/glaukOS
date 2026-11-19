@@ -115,9 +115,13 @@ def build_form(text_en: str, lang: str, dec: dict, assignee_actor: str | None) -
 
 
 class Worker:
-    def __init__(self, sb: Supabase, pipe: Pipeline, since: datetime, poll_s: float = 2.0):
+    def __init__(self, sb: Supabase, pipe: Pipeline, since: datetime, poll_s: float = 2.0, briefing_llm=None):
         self.sb, self.pipe, self.since, self.poll_s = sb, pipe, since, poll_s
         self.done: set[str] = set()
+        self.briefings_on = True          # wyłącza się, gdy w bazie nie ma tabel z migracji briefings
+        self.last_beat = 0.0
+        from .briefing import ask_qwen
+        self.briefing_llm = briefing_llm or ask_qwen
 
     # ---------- Supabase helpers
     def emit(self, report_id: str, type_: str, actor: str, payload: dict) -> None:
@@ -197,7 +201,47 @@ class Worker:
                 self.emit(rid, "report.transcribed", "system:whisper", {"text": answer, "lang": "und"})
             self.structure(rid, full)
 
+    # ---------- briefing na zmianę wachty (tabela `briefings`)
+    def heartbeat(self) -> None:
+        if not self.briefings_on or time.monotonic() - self.last_beat < 10:
+            return
+        self.last_beat = time.monotonic()
+        try:
+            self.sb.update("worker_status", {"last_seen": _iso(datetime.now(timezone.utc)),
+                                             "info": {"briefing_model": os.getenv("LLM_MODEL", "qwen3.5:4b")}}, id="eq.1")
+        except SupabaseError as e:
+            self._no_briefings(e)
+
+    def _no_briefings(self, e) -> None:
+        self.briefings_on = False
+        log(f"briefing qwenem wyłączony (brak tabel z migracji 20261119160000_glaukos_briefings.sql?): {e}")
+
+    def briefings(self) -> int:
+        if not self.briefings_on:
+            return 0
+        from .briefing import write_briefing
+        try:
+            reqs = self.sb.select("briefings", select="*", status="eq.requested", order="requested_at.asc", limit="5",
+                                  requested_at=f"gte.{_iso(datetime.now(timezone.utc) - timedelta(minutes=10))}")
+        except SupabaseError as e:
+            self._no_briefings(e)
+            return 0
+        for req in reqs:
+            self.sb.update("briefings", {"status": "working"}, id=f"eq.{req['id']}", status="eq.requested")
+            t0 = time.perf_counter()
+            try:
+                text = write_briefing(self.sb, req, self.briefing_llm)
+                self.sb.update("briefings", {"status": "done", "text": text, "model": os.getenv("LLM_MODEL", "qwen3.5:4b"),
+                                             "generated_at": _iso(datetime.now(timezone.utc))}, id=f"eq.{req['id']}")
+                log(f"briefing {req['watch']} gotowy w {time.perf_counter() - t0:.1f}s")
+            except Exception as e:  # noqa: BLE001 — strona wtedy robi briefing z szablonu
+                self.sb.update("briefings", {"status": "failed", "error": repr(e)[:300]}, id=f"eq.{req['id']}")
+                log(f"briefing {req['watch']} nieudany: {e!r}")
+        return len(reqs)
+
     def tick(self) -> int:
+        self.heartbeat()
+        self.briefings()
         events = self.sb.select("events", select="event_id,report_id,type,actor,payload,ts",
                                 type=f'in.("{RECORDED}","{ANSWERED}")', ts=f"gte.{_iso(self.since)}", order="ts.asc",
                                 limit="50")

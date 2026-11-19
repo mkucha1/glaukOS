@@ -76,3 +76,17 @@ def on_recorded(event):
 
 `crew.on_duty` przełącza sama osoba („End shift / Start shift”). Mapa statku pokazuje przy każdym przedziale, ile osób
 pracuje (●) i odpoczywa (○); po dotknięciu przedziału widać imiona i od kiedy.
+
+## Briefing na zmianę wachty pisany przez LLM (opcjonalnie)
+
+Migracja [`20261119160000_glaukos_briefings.sql`](migrations/20261119160000_glaukos_briefings.sql) dodaje dwie
+**nowe** tabele (nic istniejącego się nie zmienia):
+
+- `briefings`: aplikacja wstawia prośbę `{id, watch, window_from, window_to}` (status `requested`), worker statku
+  (`backend/decision`: `shipdec worker`) pisze tekst qwenem z rejestru i ustawia `done` + `text` (albo `failed`).
+  Każdy czyta tylko swoje prośby. Briefing obejmuje zgłoszenia, które ta osoba może czytać (jak `can_read`).
+- `worker_status.last_seen`: heartbeat workera co ~10 s.
+
+Strona (`HandoverPage`) używa briefingu od LLM tylko wtedy, gdy worker dał znak życia w ostatnich 90 s. Inaczej,
+albo przy błędzie, robi briefing z szablonu w przeglądarce (`frontend/src/lib/handover.ts`), jak dotąd.
+Bez tej migracji wszystko działa po staremu (worker wyłącza wtedy u siebie briefing).

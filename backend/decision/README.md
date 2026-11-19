@@ -289,3 +289,11 @@ Stanowiska i działy są jak we frontendzie (`frontend/src/lib/positions.ts`):
 
 Dane są przeetykietowane pod te stanowiska.
 `integration/` (stary serwer z gałęzi `offline`) zostaje dla porządku, ale nie pasuje już do nowych stanowisk.
+
+### Briefing na zmianę wachty (qwen)
+
+Worker obsługuje też prośby o briefing z tabeli `briefings` (migracja `supabase/migrations/20261119160000_glaukos_briefings.sql`).
+Zbiera zgłoszenia widoczne dla osoby, która pyta: zmienione w czasie wybranej wachty i wszystkie wciąż otwarte
+(priorytet, status, sektor, kto ma zadanie albo kogo podpowiada Basal, raport DPA, czujnik). qwen
+(`src/shipdec/briefing.py`) pisze z tych faktów tekst do odczytania na głos w mniej niż minutę. Gdy worker nie działa,
+strona robi briefing z szablonu jak wcześniej.
