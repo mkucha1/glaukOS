@@ -5,6 +5,7 @@ from shipdec.backends import MockBackend
 from shipdec.config import load_questions
 from shipdec.contract import to_decision
 from shipdec.ship import SECTOR_LABELS
+from shipdec.supa import SupabaseError
 from shipdec.worker import Pipeline, Worker, autopilot
 
 
@@ -27,7 +28,13 @@ class FakeSupabase:
             return str(val) >= arg
         raise NotImplementedError(op)
 
+    def _table(self, table):
+        if table not in self.tables:                  # jak PostgREST: brak tabeli = błąd HTTP
+            raise SupabaseError(f"HTTP 404 relation public.{table} does not exist")
+        return self.tables[table]
+
     def select(self, table, **params):
+        self._table(table)
         rows = [r for r in self.tables[table] if all(self._match(r, k, v) for k, v in params.items())]
         if params.get("order", "").startswith("on_duty.desc"):
             rows.sort(key=lambda r: not r.get("on_duty"))
@@ -36,7 +43,7 @@ class FakeSupabase:
     def insert(self, table, row):
         row = dict(row)
         row.setdefault("ts", datetime.now(timezone.utc).isoformat())
-        self.tables[table].append(row)
+        self._table(table).append(row)
 
     def update(self, table, values, **filters):
         for r in self.select(table, **filters):
@@ -53,7 +60,10 @@ class FakePipeline(Pipeline):
         self.questions, self.thresholds = load_questions()
 
     def stt(self, audio, filename):
-        return self.transcripts[audio]
+        t = self.transcripts[audio]
+        if isinstance(t, Exception):
+            raise t
+        return t
 
     def clean(self, text):
         unclear = text.strip().lower().startswith("yyy nic")
@@ -145,3 +155,89 @@ def test_form_maps_decision_fields():
     dec = to_decision(MockBackend(seed=2).decide("lina na rufie przetarta", q)["answers"], th, {})
     f = build_form("Mooring rope at aft: badly chafed, needs replacing.", "pl", dec, "bosun:jun")
     assert f["equipment"] == "Mooring rope at aft" and f["decision"]["assignee"] == "bosun:jun"
+
+
+# ---------------------------------------------------------------- briefing qwenem
+def _briefing_setup():
+    sb = _setup()
+    sb.tables["positions"] = [{"id": "chief_engineer", "department": "engine", "approves": ["engine"]},
+                              {"id": "chief_officer", "department": "deck", "approves": ["deck", "catering"]}]
+    sb.tables["crew"] += [{"id": "uid-ce", "actor": "chief_engineer:anna", "position": "chief_engineer",
+                           "on_duty": True, "name": "Anna"}]
+    sb.tables["briefings"], sb.tables["worker_status"] = [], [{"id": 1, "last_seen": None}]
+    now = datetime.now(timezone.utc)
+    ev = lambda rid, t, dept, payload, actor="system:basal": sb.insert(
+        "events", {"event_id": f"{rid}-{t}", "report_id": rid, "type": t, "actor": actor, "department": dept,
+                   "payload": payload, "ts": now.isoformat()})
+    ev("e1", "report.recorded", "engine", {}, "2nd_engineer:mateusz")
+    ev("e1", "report.structured", "engine", {"equipment": "Cooling water pump No. 2", "priority": 1,
+                                             "text_en": "Leak at mechanical seal.", "location": "Engine room",
+                                             "decision": {"assignee": "2nd_engineer:mateusz", "dpa_report": False}})
+    ev("d1", "report.recorded", "deck", {}, "bosun:jun")
+    ev("d1", "report.structured", "deck", {"equipment": "Mooring rope", "priority": 2, "text_en": "Rope chafed."})
+    sb.insert("briefings", {"id": "b1", "requested_by": "uid-ce", "watch": "12-16", "status": "requested", "lang": "en",
+                            "window_from": (now - timedelta(hours=2)).isoformat(),
+                            "window_to": (now + timedelta(hours=2)).isoformat(), "requested_at": now.isoformat()})
+    return sb
+
+
+def test_briefing_is_written_from_visible_reports_only():
+    sb = _briefing_setup()
+    seen = {}
+
+    def fake_llm(watch, facts, lang):
+        seen["facts"] = facts
+        return "Watch handover, 12 to 16. Cooling water pump No. 2 leaks, Mateusz holds it. End of handover."
+
+    w = Worker(sb, FakePipeline({}), datetime.now(timezone.utc), briefing_llm=fake_llm)
+    w.tick()
+    b = sb.tables["briefings"][0]
+    assert b["status"] == "done" and b["text"].startswith("Watch handover") and b["generated_at"]
+    assert [f["what"] for f in seen["facts"]] == ["Cooling water pump No. 2"]     # deck: nie dział Chief Engineera
+    f = seen["facts"][0]
+    assert f["priority"] == 1 and f["assigned_to"] == "suggested: 2nd_engineer:mateusz" and f["where"] == "Engine room"
+    assert sb.tables["worker_status"][0]["last_seen"]                              # heartbeat
+    w.tick()
+    assert sum(1 for x in sb.tables["briefings"] if x["status"] == "done") == 1   # nie pisze drugi raz
+
+
+def test_briefing_failure_is_reported_not_raised():
+    sb = _briefing_setup()
+
+    def broken(*a):
+        raise RuntimeError("ollama down")
+
+    Worker(sb, FakePipeline({}), datetime.now(timezone.utc), briefing_llm=broken).tick()
+    assert sb.tables["briefings"][0]["status"] == "failed" and "ollama down" in sb.tables["briefings"][0]["error"]
+
+
+def test_worker_keeps_handling_reports_without_briefing_tables():
+    sb = _setup()                                     # baza bez migracji briefings
+    _record(sb, "r9", b"A1")
+    w = Worker(sb, FakePipeline({b"A1": "pompa dwa cieknie"}), datetime.now(timezone.utc) - timedelta(minutes=5))
+    w.tick()
+    assert not w.briefings_on and "report.structured" in _types(sb, "r9")
+
+
+def test_unreadable_recording_asks_again_and_worker_goes_on():
+    from shipdec.worker import AudioUnusable
+    sb = _setup()
+    _record(sb, "bad", b"X")
+    _record(sb, "ok", b"A1")
+    w = Worker(sb, FakePipeline({b"X": AudioUnusable("STT 422: Invalid data"), b"A1": "pompa dwa cieknie"}),
+               datetime.now(timezone.utc) - timedelta(minutes=5))
+    w.tick()
+    assert _types(sb, "bad") == ["report.recorded", "report.clarification_requested"]
+    assert "report.structured" in _types(sb, "ok")                      # kolejne zgłoszenie obsłużone
+
+
+def test_unexpected_error_is_retried_then_skipped():
+    sb = _setup()
+    _record(sb, "boom", b"B")
+    _record(sb, "ok", b"A1")
+    w = Worker(sb, FakePipeline({b"B": ValueError("coś dziwnego"), b"A1": "pompa dwa cieknie"}),
+               datetime.now(timezone.utc) - timedelta(minutes=5))
+    for _ in range(4):
+        w.tick()                                                         # nie rzuca wyjątku
+    assert "report.structured" in _types(sb, "ok")
+    assert w.failures["boom"] == 3 and "boom" in w.done
