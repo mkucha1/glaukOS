@@ -1,0 +1,11 @@
+# Kto ma się zająć zgłoszeniem (pytanie `osoba`). Klucze = stanowiska z frontendu
+# (frontend/src/lib/positions.ts, tabela public.positions w Supabase); `dzial` = department stanowiska.
+# Konkretną osobę dobiera worker z tabeli `crew` (najpierw ktoś na dyżurze na tym stanowisku).
+# Sprawy elektryczne przejmuje 2nd_engineer; zdarzenia DPA i medyczne — chief_officer.
+
+crew:
+  chief_engineer: {dzial: engine,   opis: "Starszy mechanik — poważne awarie, decyzje techniczne, zamówienia części, paliwo, odolejacz"}
+  2nd_engineer:   {dzial: engine,   opis: "Drugi mechanik — bieżące usterki i obchody maszynowni, pompy, generatory, elektryka, chłodnie, klimatyzacja"}
+  chief_officer:  {dzial: deck,     opis: "Starszy oficer — ładunek, ładownie, balast, inspekcje, sprzęt ratunkowy i ppoż., nawigacja, wypadki i sprawy medyczne"}
+  bosun:          {dzial: deck,     opis: "Bosman — prace pokładowe: liny i cumowanie, malowanie i rdza, trapy, windy kotwiczne, magazyn bosmański"}
+  chief_cook:     {dzial: catering, opis: "Starszy kucharz — kuchnia, prowiant i zapasy, mesa, odpady spożywcze, sprzątanie nadbudówki"}

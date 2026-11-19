@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Btn, Card, PriorityBadge, StatusBadge, cx, shortActor, timeOf } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useCrew } from '../../lib/crew';
-import { DEPARTMENTS, canApproveDept, departmentOfActor } from '../../lib/positions';
+import { DECISION_LABELS, decisionOf } from '../../lib/decision';
+import { DEPARTMENTS, canApproveDept, departmentOfActor, positionLabel } from '../../lib/positions';
 import { actorOf, useProfile } from '../../lib/profile';
 import { AWAITING, type ReportView } from '../../lib/store';
 import type { ReportForm } from '../../types';
@@ -26,7 +27,10 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
   const me = actorOf(profile!);
   const [form, setForm] = useState<ReportForm | undefined>(report.form);
   const [dirty, setDirty] = useState(false);
-  const [assignee, setAssignee] = useState(report.actor);
+  const model = decisionOf(report.aiForm);
+  // The model's suggestion (arrives with report.structured) is used until the officer picks someone.
+  const [picked, setPicked] = useState<string | null>(null);
+  const assignee = picked ?? model?.assignee ?? report.actor;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,8 +48,11 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
     const sorted = [...list].sort((a, b) => Number(b.on_duty) - Number(a.on_duty) || a.name.localeCompare(b.name));
     const actors = sorted.map((c) => c.actor);
     if (!actors.includes(report.actor) && !report.actor.startsWith('system')) actors.unshift(report.actor);
-    return actors.map((a) => ({ actor: a, resting: sorted.find((c) => c.actor === a)?.on_duty === false }));
-  }, [roster, dept, report.actor, knownActors]);
+    // The model may suggest someone from another department (e.g. deck crew reporting an engine fault).
+    if (model?.assignee && !actors.includes(model.assignee)) actors.unshift(model.assignee);
+    const all = [...roster];
+    return actors.map((a) => ({ actor: a, resting: all.find((c) => c.actor === a)?.on_duty === false }));
+  }, [roster, dept, report.actor, knownActors, model?.assignee]);
   const allowed = canApproveDept(profile!.position, dept);
   const canDecide = AWAITING.includes(report.status) && !!form && allowed;
   const deptLabel = DEPARTMENTS.find((d) => d.id === dept)?.label.toLowerCase() ?? dept;
@@ -113,6 +120,47 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
         </Card>
       </div>
 
+      {model && (
+        <Card className={cx('border-2', model.needs_officer ? 'border-warn/60' : 'border-ok/50')}>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <h2 className="text-[15px] font-semibold">Model decision</h2>
+            <span className="text-xs text-cream/50">{model.model}</span>
+            {model.dpa_report && (
+              <span className="rounded-md bg-alert/20 px-2 py-0.5 text-xs font-bold text-alert">DPA report</span>
+            )}
+            <span className={cx('ml-auto text-xs font-bold', model.needs_officer ? 'text-warn' : 'text-ok')}>
+              {model.needs_officer
+                ? `Check: ${model.needs_review.map((k) => DECISION_LABELS[k] ?? k).join(', ')}`
+                : 'Confident — ready to approve'}
+            </span>
+          </div>
+          <div className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+            <div>
+              <span className="text-cream/55">Department</span> <b className="capitalize">{model.department}</b>
+              <span className="text-cream/45"> · approves {positionLabel(model.approver_position)}</span>
+            </div>
+            <div>
+              <span className="text-cream/55">Assign to</span> <b>{positionLabel(model.position)}</b>
+              <span className="text-cream/45"> · {model.assignee ? shortActor(model.assignee) : 'nobody signed in'}</span>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-col gap-1.5">
+            {Object.entries(model.confidences).map(([k, v]) => (
+              <div key={k} className="flex items-center gap-2 text-xs">
+                <span className="w-24 shrink-0 text-cream/60">{DECISION_LABELS[k] ?? k}</span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink/40">
+                  <span
+                    className={cx('block h-full rounded-full', model.needs_review.includes(k) ? 'bg-warn' : 'bg-steel')}
+                    style={{ width: `${Math.round(v * 100)}%` }}
+                  />
+                </span>
+                <span className="w-10 text-right font-mono text-cream/60">{Math.round(v * 100)}%</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {form && (
         <Card>
           <div className="mb-3 flex items-center gap-2">
@@ -159,7 +207,7 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
                 value={form.priority}
                 onChange={(e) => set('priority', Number(e.target.value) as ReportForm['priority'])}
               >
-                {[1, 2, 3, 4, 5].map((p) => (
+                {[1, 2, 3].map((p) => (
                   <option key={p} value={p}>
                     P{p}
                   </option>
@@ -179,11 +227,16 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
         <Card className="sticky bottom-2 z-10 flex flex-wrap items-end gap-3 border-cream/20 bg-navy-deep/95 backdrop-blur">
           <label className="flex min-w-48 flex-1 flex-col gap-1">
             <span className="text-xs text-cream/60">Assign to</span>
-            <select className={input} value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+            <select
+              className={input}
+              value={assignee}
+              onChange={(e) => setPicked(e.target.value)}
+            >
               {crew.map((c) => (
                 <option key={c.actor} value={c.actor}>
                   {shortActor(c.actor)}
                   {c.resting ? ' — resting' : ''}
+                  {c.actor === model?.assignee ? ' — suggested' : ''}
                 </option>
               ))}
             </select>

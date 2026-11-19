@@ -1,0 +1,77 @@
+{
+  "_note": "Wygenerowane: cd backend/decision && shipdec export-server-config. Nie edytuj ręcznie.",
+  "questions": {
+    "dzial": {
+      "type": "choice",
+      "instructions": "Który dział na statku musi się tym zająć (naprawić, zamówić, zdecydować)?",
+      "criteria": {
+        "engine": "Maszynownia: silnik, pompy, generatory, instalacje, elektryka i elektronika (także na mostku), chłodnie, klimatyzacja",
+        "deck": "Pokład pod oficerem: ładunek, ładownie, balast, cumowanie, malowanie, sprzęt ratunkowy i ppoż., nawigacja, wypadki",
+        "catering": "Kuchnia i hotel: prowiant i zapasy żywności, mesa, odpady spożywcze, sprzątanie nadbudówki"
+      }
+    },
+    "pilnosc": {
+      "type": "score",
+      "instructions": "Jak pilne jest to zgłoszenie dla codziennej pracy statku?",
+      "criteria": [
+        "P3 — rutynowe: informacja, pomiar, wykonana praca albo drobiazg do zrobienia przy okazji",
+        "P2 — do załatwienia w najbliższych dniach albo przy następnym porcie",
+        "P1 — pilne: wpływa na pracę statku albo wymaga reakcji jeszcze dziś (naprawa, zamówienie, braki)"
+      ]
+    },
+    "raport_dpa": {
+      "type": "noul",
+      "instructions": "Czy to zdarzenie jest wypadkiem lub sytuacją 'prawie wypadek', którą trzeba zgłosić do armatora (DPA)?",
+      "criteria": {
+        "true": "Tak — ktoś został lub mógł zostać ranny, albo było zagrożenie dla statku lub środowiska",
+        "false": "Nie — zwykła usterka lub prośba bez zagrożenia"
+      }
+    },
+    "sektor": {
+      "type": "choice",
+      "instructions": "Gdzie na statku jest to, czego dotyczy zgłoszenie?",
+      "criteria": {
+        "engine": "Maszynownia: silnik główny, generatory, pompy, sprężarki, kotły, wirówki, centrala ECR, rozdzielnica, maszyna sterowa, zęzy, warsztat",
+        "deck": "Pokład: dźwigi, pokrywy i wnętrze ładowni, cumowanie, dziób i windy kotwiczne, rufa, szalupy, trapy, reling, balast i zbiorniki",
+        "galley": "Nadbudówka mieszkalna: kuchnia, mesa, chłodnie i magazyny prowiantu, kabiny, korytarze, łazienki, pralnia, klimatyzacja pomieszczeń",
+        "bridge": "Mostek: radar, ECDIS, żyrokompas, VHF, autopilot, nawigacja, oświetlenie nawigacyjne"
+      }
+    },
+    "osoba": {
+      "type": "choice",
+      "instructions": "Kto powinien przejąć to zadanie?",
+      "criteria": {
+        "chief_engineer": "Starszy mechanik — poważne awarie, decyzje techniczne, zamówienia części, paliwo, odolejacz",
+        "2nd_engineer": "Drugi mechanik — bieżące usterki i obchody maszynowni, pompy, generatory, elektryka, chłodnie, klimatyzacja",
+        "chief_officer": "Starszy oficer — ładunek, ładownie, balast, inspekcje, sprzęt ratunkowy i ppoż., nawigacja, wypadki i sprawy medyczne",
+        "bosun": "Bosman — prace pokładowe: liny i cumowanie, malowanie i rdza, trapy, windy kotwiczne, magazyn bosmański",
+        "chief_cook": "Starszy kucharz — kuchnia, prowiant i zapasy, mesa, odpady spożywcze, sprzątanie nadbudówki"
+      }
+    }
+  },
+  "thresholds": {
+    "default": 0.8,
+    "raport_dpa": 0.9,
+    "pilnosc": 0.0,
+    "sektor": 0.0
+  },
+  "priority_from_level": {
+    "1": 3,
+    "2": 2,
+    "3": 1
+  },
+  "dpa_priority": 1,
+  "route_role": {
+    "engine": "chief_engineer",
+    "deck": "chief_officer",
+    "catering": "chief_officer"
+  },
+  "assignee": {},
+  "sector_labels": {
+    "engine": "Engine room",
+    "deck": "Main deck",
+    "galley": "Galley & mess",
+    "bridge": "Bridge"
+  },
+  "sector_min_conf": 0.5
+}

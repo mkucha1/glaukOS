@@ -1,0 +1,19 @@
+# 15 reprezentatywnych wypowiedzi z data/realistic/utterances.yaml (id szablonu -> po co jest w próbce).
+# Razem: dział engine/deck, P1/P2/P3, 3x raport DPA, 3 role, 4 sektory, pl/en, rutyna/usterka/zdarzenie
+# i typowe "brudy" mowy (wypełniacze, autokorekty, liczby słownie, mieszanie języków, L2, brak treści).
+probka:
+  p01: "rutyna, obchód maszynowni — wypełniacze, liczby słownie (P3, 2nd_engineer)"
+  p08: "raport dzienny zużycia wody — autokorekta w trakcie (P2, chief_engineer)"
+  p39: "trzy tematy w jednej wypowiedzi (P2, chief_engineer)"
+  p07: "zamówienie części na port — lista, liczby (P1, chief_engineer)"
+  p20: "relacja z drugiej ręki, problem na pokładzie, naprawia maszynownia (P1, sektor deck)"
+  p11: "lampa nawigacyjna — autokorekta, naprawia mechanik (P1, sektor bridge)"
+  p29: "wyciek paliwa — zdarzenie, raport DPA, urwane słowo (P1)"
+  e08: "alarm zęzy — angielski L2, powtórzenia (P2)"
+  p35: "brak treści: 'nic, wszystko dobrze' (czy qwen nie dopisze czegoś?)"
+  e05: "drobny wypadek w kuchni — przeprosiny, raport DPA (P1, catering, chief_officer, sektor galley)"
+  p40: "cumowanie, odbita lina — emocje, mieszanie języków, raport DPA (P1, chief_officer)"
+  p04: "prace pokładowe, kilka tematów, mieszanie języków (P2, bosun)"
+  e07: "przekazanie wachty na mostku — liczby słownie (P3, chief_officer, sektor bridge)"
+  e22: "sprzątanie nadbudówki — lista, szum na początku (P3, catering, chief_cook, sektor galley)"
+  e25: "bardzo krótko, luki w rozpoznaniu mowy: '* * the pilot ladder ah checked * okay' (P3)"

@@ -1,0 +1,18 @@
+# Kto zgłasza (metadane zgłoszeń): stanowiska z frontendu (frontend/src/lib/positions.ts).
+# W Supabase każda osoba to wiersz w `crew` (actor = "stanowisko:imię"). Osoby fikcyjne.
+# `jezyk` = język, w którym zwykle nagrywa zgłoszenia.
+
+statek:
+  nazwa: "Demo Ship"
+  ship_id: "demo"
+
+zaloga:
+  - {crew_id: tom,     imie: "Tom",     rola: 2nd_engineer,   dzial: engine,   jezyk: en}
+  - {crew_id: anna,    imie: "Anna",    rola: chief_engineer, dzial: engine,   jezyk: pl}
+  - {crew_id: ivan,    imie: "Ivan",    rola: chief_officer,  dzial: deck,     jezyk: en}
+  - {crew_id: jun,     imie: "Jun",     rola: bosun,          dzial: deck,     jezyk: en}
+  - {crew_id: edwin,   imie: "Edwin",   rola: chief_cook,     dzial: catering, jezyk: en}
+  - {crew_id: kapitan, imie: "Kapitan", rola: captain,        dzial: command,  jezyk: pl}
+
+# Skąd zgłoszenie mogło zostać nadane
+urzadzenia: ["phone", "phone", "phone", "ecr-terminal", "bridge-tablet"]
