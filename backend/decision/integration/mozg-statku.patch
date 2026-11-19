@@ -1,0 +1,717 @@
+diff --git a/mozg-statku/docker-compose.yml b/mozg-statku/docker-compose.yml
+index b36bdb8..64cfb3a 100644
+--- a/mozg-statku/docker-compose.yml
++++ b/mozg-statku/docker-compose.yml
+@@ -26,6 +26,10 @@ services:
+       USE_STUBS: ${USE_STUBS:-}
+       AUTO_APPROVE_CONFIDENCE: ${AUTO_APPROVE_CONFIDENCE:-0.9}
+       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
++      # Warstwa decyzyjna (plugins/decision.py): Basal na komputerze-gospodarzu, port 8001
++      # (backend/decision/scripts/serve_mac.sh z DOCKER=1). DECISION_ENABLED=0 wyłącza.
++      BASAL_URL: ${BASAL_URL:-http://host.docker.internal:8001/v1/systemone}
++      DECISION_ENABLED: ${DECISION_ENABLED:-1}
+       RELOAD: ${RELOAD:-0}
+     volumes:
+       - ./data/ship:/data                 # rejestr zdarzeń (events.db) + nagrania audio
+diff --git a/mozg-statku/docs/CONTRACTS.md b/mozg-statku/docs/CONTRACTS.md
+index b36cfd9..23dd792 100644
+--- a/mozg-statku/docs/CONTRACTS.md
++++ b/mozg-statku/docs/CONTRACTS.md
+@@ -33,11 +33,19 @@ def apply_clarification(form, clarification, answer_text, answer_lang, context)
+ - `context = {"report_id", "crew": {...lang, role}, "equipment": config/equipment.json, "round", "ollama_url"}`
+ - `sensors.get("CW_PUMP_2_P") -> {"tag","value","unit","ts","age_s"} | None`
+ - `check()` zwraca `"clarification": {"question", "lang", "question_en", "field"}` → serwer wysyła pytanie na `person/{crew_id}` i czeka. Po odpowiedzi woła `apply_clarification()` i znowu `check()`. Maksymalnie `MAX_CLARIFY_ROUNDS` (2) rund, potem zgłoszenie idzie do oficera z flagą `unresolved_clarification`.
+-- `route_role` → temat `role/{route_role}/approve`; `priority: 5` → `ship/{id}/bridge/alert`.
++- `priority` 1–3 jak we frontendzie (P1 = najwyższy). `route_role` → temat `role/{route_role}/approve` — role z frontendu (`2nd_engineer`, `chief_engineer`, `officer`); `alarm: true` (pożar, dym) → `ship/{id}/bridge/alert`.
+ - **Oficer tylko przy małej pewności.** Serwer wysyła zgłoszenie do oficera, gdy `form.confidence < AUTO_APPROVE_CONFIDENCE` (domyślnie 0.9), czujnik się nie zgadza (`ok: false`) albo pytanie zostało bez odpowiedzi. W przeciwnym razie zatwierdza automatycznie (`report.approved` z `auto: true`, aktor `system:auto_approve`). `confidence` musi więc naprawdę coś znaczyć. Możesz nadpisać decyzję polem `"needs_officer": true/false` w wyniku `check()`, a `"assignee": "tom"` od razu przydzieli zadanie przy auto-zatwierdzeniu.
+ - Pełne modele: `server/app/contracts.py`. Tabela urządzeń/tagów: `server/config/equipment.json` (kody SFI ilustracyjne — do weryfikacji).
+ - **Czujniki:** publikuj na `ship/{SHIP_ID}/sensors/{TAG}` JSON `{"tag","value","unit","ts"}` (retained, QoS 1), broker `localhost:1883`. Zaślepka: `server/sim/sensors.py` (`docker compose stop sensors`, żeby uruchomić swój).
+ 
++**Stan (gałąź offline-decision):** `check()` = reguły z zaślepki + warstwa decyzyjna Basal
++(`server/plugins/decision.py`, konfiguracja `server/config/decision.json` generowana z `backend/decision`).
++Basal ustawia `priority` (P1–P3), `dept` (`engine`/`deck`), `route_role` (`chief_engineer`/`officer`), `assignee` i `needs_officer`;
++alarm z reguł (`alarm: true`) i niezgodność z czujnikiem mają pierwszeństwo.
++Sektor statku (4 sektory demo z `frontend/src/lib/ship.ts`: engine, deck, galley, bridge) Basal wybiera już w `structure()` i wpisuje jego etykietę
++do `form.location`, gdy nie rozpoznano konkretnego urządzenia — frontend stawia zgłoszenie w tym miejscu przekroju. Basal działa obok na porcie 8001 (`BASAL_URL`);
++bez niego zostaje decyzja z reguł. Szczegóły: `backend/decision/README.md`.
++
+ ## Daniel — `server/plugins/refine.py` (przerobienie raportu)
+ 
+ ```python
+@@ -80,7 +88,7 @@ Statusy zgłoszenia: `recorded → transcribed → refined → structured → (c
+ | `person/{crew_id}` | `{type:"clarification", report_id, question, lang}` · `{type:"task", task_id, title}` · `{type:"report_update", status}` | telefon tej osoby |
+ | `role/{rola}/approve` | `{type:"approval_request", report:{…}}` — tylko przy małej pewności | tablet oficera |
+ | `ship/{id}/eng/new` | `{type:"approval_request"\|"auto_approved", report}` | oficerowie maszynowni |
+-| `ship/{id}/bridge/alert` | `{type:"alert", report}` (priorytet 5) | mostek |
++| `ship/{id}/bridge/alert` | `{type:"alert", report}` (`alarm: true` — pożar, dym) | mostek |
+ | `ship/{id}/events` | każde zdarzenie z rejestru | wszystkie widoki |
+ | `ship/{id}/sync` (retained) | `{link_up, queue_len, sent:{events, bytes_wire}, audio_bytes_aboard}` | licznik kolejki na ląd |
+ 
+diff --git a/mozg-statku/scripts/e2e_test.py b/mozg-statku/scripts/e2e_test.py
+index a973db4..637cf36 100644
+--- a/mozg-statku/scripts/e2e_test.py
++++ b/mozg-statku/scripts/e2e_test.py
+@@ -191,7 +191,7 @@ def main() -> int:
+           f"raport przerobiony przez Daniela: „{(st.get('refined') or {}).get('text')}”")
+     check(f.get("equipment") == "Cooling water pump No. 2", f"urządzenie: {f.get('equipment')} SFI {f.get('sfi_code')}")
+     check(c.get("ok") is True, f"czujnik {c.get('tag')}: {c.get('measured')} vs zgłoszone {c.get('reported')} — zgodne")
+-    check(f.get("priority") == 4, f"priorytet {f.get('priority')}; EN: {f.get('text_en')}")
++    check(f.get("priority") == 1, f"priorytet {f.get('priority')} (1 = najwyższy); EN: {f.get('text_en')}")
+ 
+     print("\n[6] Zatwierdzenie i zadanie")
+     appr = {"event_id": str(uuid.uuid4()), "officer_id": "anna", "decision": "approve", "assignee": "tom"}
+diff --git a/mozg-statku/server/app/contracts.py b/mozg-statku/server/app/contracts.py
+index 97770fa..dfa0aa8 100644
+--- a/mozg-statku/server/app/contracts.py
++++ b/mozg-statku/server/app/contracts.py
+@@ -44,6 +44,11 @@ class TranscriptResult(_Open):
+ 
+ 
+ # ------------------------------------------------------------------ Maciej: formularz + decyzja
++# Priorytet: skala 1-3 jak we frontendzie (P1 = najwyższy): 1 pilne (dziś / wpływa na pracę statku),
++# 2 w najbliższych dniach albo przy następnym porcie, 3 rutyna. Alarm na mostek to osobna flaga Decision.alarm.
++PRIORITY_MIN, PRIORITY_MAX = 1, 3
++
++
+ class ReportForm(_Open):
+     equipment: Optional[str] = None
+     sfi_code: Optional[str] = None
+@@ -51,7 +56,7 @@ class ReportForm(_Open):
+     value: Optional[float] = None
+     unit: Optional[str] = None
+     defect: Optional[str] = None
+-    priority: int = Field(default=3, ge=1, le=5)
++    priority: int = Field(default=2, ge=PRIORITY_MIN, le=PRIORITY_MAX)
+     location: Optional[str] = None
+     action_taken: Optional[str] = None
+     text_en: str = ""
+@@ -79,8 +84,9 @@ class Clarification(_Open):
+ 
+ 
+ class Decision(_Open):
+-    priority: int = Field(default=3, ge=1, le=5)
+-    route_role: str = "chief_engineer"  # kto zatwierdza -> temat role/{route_role}/approve
++    priority: int = Field(default=2, ge=PRIORITY_MIN, le=PRIORITY_MAX)
++    route_role: str = "chief_engineer"  # kto zatwierdza -> temat role/{route_role}/approve (role z frontendu)
++    alarm: bool = False                 # True -> ship/{id}/bridge/alert (pożar, dym — z reguł, nie z priorytetu)
+     dept: str = "engine"                # "engine" -> temat ship/{id}/eng/new
+     checks: list[SensorCheck] = Field(default_factory=list)
+     clarification: Optional[Clarification] = None
+diff --git a/mozg-statku/server/app/notify.py b/mozg-statku/server/app/notify.py
+index 142b452..2434f94 100644
+--- a/mozg-statku/server/app/notify.py
++++ b/mozg-statku/server/app/notify.py
+@@ -5,7 +5,7 @@ Tematy (zgodnie z planem):
+   ship/{id}/eng/new           nowe zgłoszenie maszynowni gotowe do zatwierdzenia
+   role/{rola}/approve         prośba o zatwierdzenie (tylko przy małej pewności)
+   person/{crew_id}            pytania zwrotne, zadania, zmiana statusu własnego zgłoszenia
+-  ship/{id}/bridge/alert      priorytet 5
++  ship/{id}/bridge/alert      alarm (Decision.alarm: pożar, dym)
+   ship/{id}/sync              stan kolejki na ląd (retained) — publikuje outbox
+   ship/{id}/sensors/{tag}     odczyty czujników (publikuje symulator, nie serwer)
+ """
+@@ -41,7 +41,7 @@ class Notifier:
+                 self.hub.publish(f"role/{p.get('route_role') or 'chief_engineer'}/approve", msg)
+             if (p.get("dept") or "engine") == "engine":
+                 self.hub.publish(f"ship/{s}/eng/new", msg)
+-            if (p.get("priority") or 0) >= 5:
++            if p.get("alarm"):
+                 self.hub.publish(f"ship/{s}/bridge/alert", {"type": "alert", "report": summ, "ts": ev["ts"]})
+             return
+ 
+diff --git a/mozg-statku/server/config/crew.json b/mozg-statku/server/config/crew.json
+index b002c31..8196447 100644
+--- a/mozg-statku/server/config/crew.json
++++ b/mozg-statku/server/config/crew.json
+@@ -1,10 +1,8 @@
+ [
+-  {"crew_id": "marek",   "name": "Marek Kowalski",       "role": "motorman",       "dept": "engine", "lang": "pl"},
+-  {"crew_id": "jose",    "name": "José Mendoza",         "role": "oiler",          "dept": "engine", "lang": "es"},
+-  {"crew_id": "tom",     "name": "Tom Lindqvist",        "role": "2nd_engineer",   "dept": "engine", "lang": "en"},
+-  {"crew_id": "anna",    "name": "Anna Nowak",           "role": "chief_engineer", "dept": "engine", "lang": "pl"},
+-  {"crew_id": "eto",     "name": "Oleksandr Kovalenko",  "role": "eto",            "dept": "engine", "lang": "uk"},
+-  {"crew_id": "ivan",    "name": "Ivan Petrenko",        "role": "chief_officer",  "dept": "deck",   "lang": "uk"},
+-  {"crew_id": "bosun",   "name": "Carlos Reyes",         "role": "bosun",          "dept": "deck",   "lang": "en"},
+-  {"crew_id": "kapitan", "name": "Kpt. Piotr Wiśniewski","role": "master",         "dept": "bridge", "lang": "pl"}
+-]
+\ No newline at end of file
++  {"crew_id": "marek",   "name": "Marek",   "role": "motorman",       "rank": "motorman",       "dept": "engine", "lang": "pl"},
++  {"crew_id": "jose",    "name": "José",    "role": "oiler",          "rank": "oiler",          "dept": "engine", "lang": "en"},
++  {"crew_id": "tom",     "name": "Tom",     "role": "2nd_engineer",   "rank": "2nd_engineer",   "dept": "engine", "lang": "en"},
++  {"crew_id": "anna",    "name": "Anna",    "role": "chief_engineer", "rank": "chief_engineer", "dept": "engine", "lang": "pl"},
++  {"crew_id": "ivan",    "name": "Ivan",    "role": "officer",        "rank": "chief_officer",  "dept": "deck",   "lang": "en"},
++  {"crew_id": "kapitan", "name": "Captain", "role": "officer",        "rank": "master",         "dept": "bridge", "lang": "pl"}
++]
+diff --git a/mozg-statku/server/config/decision.json b/mozg-statku/server/config/decision.json
+new file mode 100644
+index 0000000..8d5a423
+--- /dev/null
++++ b/mozg-statku/server/config/decision.json
+@@ -0,0 +1,77 @@
++{
++  "_note": "Wygenerowane: cd backend/decision && shipdec export-server-config. Nie edytuj ręcznie.",
++  "questions": {
++    "dzial": {
++      "type": "choice",
++      "instructions": "Który dział na statku musi się tym zająć (naprawić, zamówić, zdecydować)?",
++      "criteria": {
++        "engine": "Maszynownia: silnik, pompy, generatory, instalacje, elektryka i elektronika (także na mostku), chłodnie, klimatyzacja",
++        "deck": "Reszta statku pod oficerem: pokład, ładownie, balast, cumowanie, sprzęt ratunkowy i ppoż., nawigacja, nadbudówka, kuchnia i prowiant, odpady"
++      }
++    },
++    "pilnosc": {
++      "type": "score",
++      "instructions": "Jak pilne jest to zgłoszenie dla codziennej pracy statku?",
++      "criteria": [
++        "P3 — rutynowe: informacja, pomiar, wykonana praca albo drobiazg do zrobienia przy okazji",
++        "P2 — do załatwienia w najbliższych dniach albo przy następnym porcie",
++        "P1 — pilne: wpływa na pracę statku albo wymaga reakcji jeszcze dziś (naprawa, zamówienie, braki)"
++      ]
++    },
++    "raport_dpa": {
++      "type": "noul",
++      "instructions": "Czy to zdarzenie jest wypadkiem lub sytuacją 'prawie wypadek', którą trzeba zgłosić do armatora (DPA)?",
++      "criteria": {
++        "true": "Tak — ktoś został lub mógł zostać ranny, albo było zagrożenie dla statku lub środowiska",
++        "false": "Nie — zwykła usterka lub prośba bez zagrożenia"
++      }
++    },
++    "sektor": {
++      "type": "choice",
++      "instructions": "Gdzie na statku jest to, czego dotyczy zgłoszenie?",
++      "criteria": {
++        "engine": "Maszynownia: silnik główny, generatory, pompy, sprężarki, kotły, wirówki, centrala ECR, rozdzielnica, maszyna sterowa, zęzy, warsztat",
++        "deck": "Pokład: dźwigi, pokrywy i wnętrze ładowni, cumowanie, dziób i windy kotwiczne, rufa, szalupy, trapy, reling, balast i zbiorniki",
++        "galley": "Nadbudówka mieszkalna: kuchnia, mesa, chłodnie i magazyny prowiantu, kabiny, korytarze, łazienki, pralnia, klimatyzacja pomieszczeń",
++        "bridge": "Mostek: radar, ECDIS, żyrokompas, VHF, autopilot, nawigacja, oświetlenie nawigacyjne"
++      }
++    },
++    "osoba": {
++      "type": "choice",
++      "instructions": "Kto powinien przejąć to zadanie?",
++      "criteria": {
++        "chief_engineer": "Starszy mechanik — poważne awarie, decyzje techniczne, zamówienia części, paliwo, odolejacz",
++        "2nd_engineer": "Drugi mechanik — bieżące usterki i obchody maszynowni, pompy, generatory, elektryka, chłodnie, klimatyzacja",
++        "officer": "Oficer — pokład, ładunek, balast, cumowanie, sprzęt ratunkowy i ppoż., nawigacja, nadbudówka, kuchnia i prowiant, odpady"
++      }
++    }
++  },
++  "thresholds": {
++    "default": 0.8,
++    "raport_dpa": 0.9,
++    "pilnosc": 0.0,
++    "sektor": 0.0
++  },
++  "priority_from_level": {
++    "1": 3,
++    "2": 2,
++    "3": 1
++  },
++  "dpa_priority": 1,
++  "route_role": {
++    "engine": "chief_engineer",
++    "deck": "officer"
++  },
++  "assignee": {
++    "chief_engineer": "anna",
++    "2nd_engineer": "tom",
++    "officer": "ivan"
++  },
++  "sector_labels": {
++    "engine": "Engine room",
++    "deck": "Main deck",
++    "galley": "Galley & mess",
++    "bridge": "Bridge"
++  },
++  "sector_min_conf": 0.5
++}
+diff --git a/mozg-statku/server/plugins/_stubs.py b/mozg-statku/server/plugins/_stubs.py
+index 4eea55e..9052b0a 100644
+--- a/mozg-statku/server/plugins/_stubs.py
++++ b/mozg-statku/server/plugins/_stubs.py
+@@ -41,14 +41,22 @@ _NUM_WORDS = {
+ }
+ _YES = re.compile(r"\b(tak|yes|potwierdzam|zgadza|confirm|correct|ok)\b", re.I)
+ 
++# (wzorzec, usterka, priorytet 1-3: 1 = najwyższy jak we frontendzie, alarm na mostek)
+ _DEFECTS = [
+-    (re.compile(r"pożar|ogień|pali się|fire", re.I), "fire", 5),
+-    (re.compile(r"dym|smoke", re.I), "smoke", 5),
+-    (re.compile(r"przeciek|wyciek|cieknie|leak", re.I), "leak", 4),
+-    (re.compile(r"wibrac|drga|vibrat", re.I), "abnormal vibration", 3),
+-    (re.compile(r"hałas|stuka|noise|knock", re.I), "abnormal noise", 3),
+-    (re.compile(r"przegrz|overheat", re.I), "overheating", 4),
++    (re.compile(r"pożar|ogień|pali się|fire", re.I), "fire", 1, True),
++    (re.compile(r"\bdym|\bsmoke", re.I), "smoke", 1, True),   # \b: "w każdym razie" to nie dym
++    (re.compile(r"przeciek|wyciek|cieknie|leak", re.I), "leak", 1, False),
++    (re.compile(r"wibrac|drga|vibrat", re.I), "abnormal vibration", 2, False),
++    (re.compile(r"hałas|stuka|noise|knock", re.I), "abnormal noise", 2, False),
++    (re.compile(r"przegrz|overheat", re.I), "overheating", 1, False),
+ ]
++# Sprzęt i ćwiczenia ppoż. w codziennych raportach to nie pożar ani dym — usuwamy te frazy przed szukaniem usterek.
++_NOT_AN_ALARM = re.compile(
++    r"\bfire\s+(drill|hose|door|pump|main|station|extinguisher|alarm test|detector|blanket|fighting|fighter)s?\b"
++    r"|\bsmoke\s+(detector|test)s?\b"
++    r"|ćwiczeni\w*\s+pożarow\w*|pożarow\w*\s+ćwiczeni\w*|gaśnic\w*|hydrant\w*|czujk\w*\s+dymu|ppoż\w*",
++    re.I)
++
+ _WHERE = [
+     (re.compile(r"uszczelni|seal", re.I), "at mechanical seal"),
+     (re.compile(r"kołnierz|flange", re.I), "at flange"),
+@@ -95,7 +103,7 @@ def _text_en(form: dict, group_name: str | None) -> str:
+ 
+ def brain_structure(text: str, lang: str, context: dict) -> dict:
+     eq = context.get("equipment") or {}
+-    form: dict[str, Any] = {"lang_original": lang, "missing_fields": [], "priority": 3,
++    form: dict[str, Any] = {"lang_original": lang, "missing_fields": [], "priority": 3,  # 3 = rutyna
+                             "action_taken": "none", "confidence": 0.6}
+     gid = _find_group(text, eq)
+     group = eq.get("groups", {}).get(gid or "", {})
+@@ -133,10 +141,13 @@ def brain_structure(text: str, lang: str, context: dict) -> dict:
+         form["_trend"] = "up"
+ 
+     defects = []
+-    for rx, name, prio in _DEFECTS:
+-        if rx.search(text):
++    scan = _NOT_AN_ALARM.sub(" ", text)
++    for rx, name, prio, alarm in _DEFECTS:
++        if rx.search(scan):
+             defects.append(name)
+-            form["priority"] = max(form["priority"], prio)
++            form["priority"] = min(form["priority"], prio)
++            if alarm:
++                form["_alarm"] = True
+     for rx, where in _WHERE:
+         if rx.search(text) and defects:
+             defects[-1] = f"{defects[-1]} {where}"
+@@ -151,10 +162,11 @@ def brain_check(form: dict, sensors: Any, context: dict) -> dict:
+     crew = context.get("crew") or {}
+     lang = crew.get("lang") or form.get("lang_original") or "en"
+     lang = lang if lang in ("pl", "en") else "en"
+-    decision: dict[str, Any] = {"priority": form.get("priority", 3), "route_role": "chief_engineer",
+-                                "dept": "engine", "checks": [], "clarification": None, "notes": []}
+-    if decision["priority"] >= 5:
+-        decision["route_role"] = "master"
++    decision: dict[str, Any] = {"priority": form.get("priority", 2), "route_role": "chief_engineer",
++                                "dept": "engine", "checks": [], "clarification": None, "notes": [],
++                                "alarm": bool(form.get("_alarm"))}
++    if decision["alarm"]:
++        decision["route_role"] = "officer"  # rola z frontendu; alarm idzie też na ship/{id}/bridge/alert
+ 
+     if "equipment_no" in form.get("missing_fields", []):
+         g = eq.get("groups", {}).get(form.get("_group") or "", {})
+diff --git a/mozg-statku/server/plugins/brain.py b/mozg-statku/server/plugins/brain.py
+index 6c9d47b..6ea1b37 100644
+--- a/mozg-statku/server/plugins/brain.py
++++ b/mozg-statku/server/plugins/brain.py
+@@ -11,7 +11,7 @@ KONTRAKT (nie zmieniaj sygnatur). Wszystkie funkcje dostają `context`:
+ 
+ 1) structure(text, lang, context) -> dict  (formularz, patrz app/contracts.py: ReportForm)
+      {"equipment": "Cooling water pump No. 2", "sfi_code": "721", "parameter": "discharge pressure",
+-      "value": 1.8, "unit": "bar", "defect": "leak at mechanical seal", "priority": 4,
++      "value": 1.8, "unit": "bar", "defect": "leak at mechanical seal", "priority": 1,
+       "location": "...", "action_taken": "none", "text_en": "...", "lang_original": "pl",
+       "missing_fields": [], "confidence": 0.86}
+      Pola zaczynające się od "_" (np. "_equipment_id") są wewnętrzne: zostają na statku,
+@@ -20,34 +20,61 @@ KONTRAKT (nie zmieniaj sygnatur). Wszystkie funkcje dostają `context`:
+ 2) check(form, sensors, context) -> dict  (decyzja, patrz contracts.Decision)
+      sensors.get("CW_PUMP_2_P") -> {"tag", "value", "unit", "ts", "age_s"} | None
+      sensors.all() -> {tag: reading}
+-     {"priority": 4, "route_role": "chief_engineer", "dept": "engine",
++     {"priority": 1, "route_role": "chief_engineer", "dept": "engine", "alarm": False,
+       "checks": [{"tag": "CW_PUMP_2_P", "reported": 1.8, "measured": 1.9, "unit": "bar", "tolerance": 0.3, "ok": true}],
+       "clarification": None | {"question": "Pompa numer jeden czy numer dwa?", "lang": "pl",
+                                "question_en": "Pump number one or two?", "field": "equipment_no"}}
+      Gdy jest "clarification" -> serwer wysyła pytanie na person/{crew_id} i czeka na odpowiedź.
+-     route_role decyduje o temacie role/{route_role}/approve; priority 5 -> alert na mostek.
++     priority 1-3 (1 = najwyższy, jak we frontendzie); route_role -> role/{route_role}/approve
++     (role z frontendu: 2nd_engineer, chief_engineer, officer); alarm=True -> alert na mostek.
+ 
+ 3) apply_clarification(form, clarification, answer_text, answer_lang, context) -> dict (nowy formularz)
+      Po nim serwer automatycznie woła check() jeszcze raz (max MAX_CLARIFY_ROUNDS rund).
++
++STAN: structure / apply_clarification — zaślepki (LLM do podpięcia).
++      structure — zaślepka + sektor statku z Basala (location = sektor z frontendu).
++      check — reguły z zaślepki (czujniki, pytania zwrotne) + warstwa decyzyjna Basal
++              (plugins/decision.py: dział, pilność, raport DPA, osoba, czy potrzebny oficer).
++      Gdy Basal nie odpowiada, zostaje decyzja z reguł i notatka — zgłoszenie się nie zatrzymuje.
+ """
+ from __future__ import annotations
+ 
+ from typing import Any
+ 
+-from plugins import _stubs
++from plugins import _stubs, decision
+ 
+ 
+ def structure(text: str, lang: str, context: dict) -> dict:
+     # ====== MACIEJ: tu Ollama + JSON schema (format=ReportForm.model_json_schema()) ======
+-    return _stubs.brain_structure(text, lang, context)
++    form = _stubs.brain_structure(text, lang, context)
++    # Treść dla warstwy decyzyjnej (pola z "_" zostają na statku).
++    form["_text"] = text
++    form["_lang"] = lang
++    if decision.enabled():   # Basal raz na treść: sektor do formularza, reszta czeka na check()
++        try:
++            form = decision.annotate_form(form)
++        except Exception as e:  # Basal niedostępny -> formularz z reguł
++            form["_basal_error"] = f"{e!r}"[:200]
++    return form
+ 
+ 
+ def check(form: dict, sensors: Any, context: dict) -> dict:
+-    # ====== MACIEJ: reguły: progi zgodności z czujnikiem, brakujące pola, priorytet, routing ======
+-    return _stubs.brain_check(form, sensors, context)
++    dec = _stubs.brain_check(form, sensors, context)
++    if decision.enabled():
++        text = form.get("_text") or form.get("text_en") or ""
++        try:
++            dec = decision.merge(dec, text, decision.cached_answers(form))
++        except Exception as e:  # Basal niedostępny -> decyzja z reguł, zgłoszenie idzie dalej
++            dec.setdefault("notes", []).append(f"basal unavailable: {e!r}"[:200])
++    return dec
+ 
+ 
+ def apply_clarification(form: dict, clarification: dict, answer_text: str,
+                         answer_lang: str, context: dict) -> dict:
+     # ====== MACIEJ: wpleć odpowiedź do formularza (LLM albo reguły) ======
+-    return _stubs.brain_apply_clarification(form, clarification, answer_text, answer_lang, context)
++    new = _stubs.brain_apply_clarification(form, clarification, answer_text, answer_lang, context)
++    # Odpowiedź na pytanie zwrotne dopisujemy do treści, którą widzi warstwa decyzyjna.
++    base = form.get("_text", "")
++    new["_text"] = f"{base} — {answer_text}".strip(" —") if answer_text else base
++    new["_lang"] = form.get("_lang")
++    return new
+diff --git a/mozg-statku/server/plugins/decision.py b/mozg-statku/server/plugins/decision.py
+new file mode 100644
+index 0000000..0aeefac
+--- /dev/null
++++ b/mozg-statku/server/plugins/decision.py
+@@ -0,0 +1,130 @@
++"""MACIEJ — warstwa decyzyjna: model Basal (https://github.com/rkinas/basal) jako "semantyczny if".
++
++Dla treści zgłoszenia pyta lokalny serwer `basal-serve` (POST /v1/systemone) o dział, pilność,
++raport do DPA, sektor statku i osobę. Sektor trafia do formularza (`location` = etykieta sektora
++z frontendu, gdy nie rozpoznano konkretnego urządzenia), reszta do pól Decision (app/contracts.py).
++Basal jest pytany raz, w structure(); check() używa tych samych odpowiedzi, dopóki treść się nie zmieni
++(po pytaniu zwrotnym pyta ponownie).
++Reguły i pytania: config/decision.json — generowane z backend/decision (`shipdec export-server-config`),
++żeby ewaluacja i serwer używały dokładnie tego samego.
++
++Zmienne środowiskowe:
++  BASAL_URL          domyślnie http://127.0.0.1:8001/v1/systemone (basal-serve na 8001, bo API serwera to 8000)
++                     Docker na Macu/Windowsie: http://host.docker.internal:8001/v1/systemone
++  BASAL_TIMEOUT      sekundy, domyślnie 30
++  DECISION_ENABLED   "0" wyłącza warstwę (zostaje decyzja z zaślepki)
++
++Tylko biblioteka standardowa — obraz serwera nie potrzebuje nowych pakietów.
++"""
++from __future__ import annotations
++
++import json
++import os
++import urllib.request
++from pathlib import Path
++
++CONFIG_PATH = Path(os.getenv("CONFIG_DIR", Path(__file__).resolve().parents[1] / "config")) / "decision.json"
++_config: dict | None = None
++
++
++def config() -> dict:
++    global _config
++    if _config is None:
++        _config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
++    return _config
++
++
++def enabled() -> bool:
++    return os.getenv("DECISION_ENABLED", "1") != "0" and CONFIG_PATH.exists()
++
++
++def ask_basal(text: str) -> dict:
++    """Zwraca `answers` z Basala: {pytanie: {"probabilities": {...}, "confidence": p, ...}}."""
++    url = os.getenv("BASAL_URL", "http://127.0.0.1:8001/v1/systemone")
++    body = json.dumps({"state": text, "questions": config()["questions"]}).encode("utf-8")
++    req = urllib.request.Request(url, data=body, headers={"content-type": "application/json"})
++    with urllib.request.urlopen(req, timeout=float(os.getenv("BASAL_TIMEOUT", "30"))) as r:
++        return json.loads(r.read())["answers"]
++
++
++def to_decision(answers: dict) -> dict:
++    """Te same reguły co backend/decision/src/shipdec/contract.py: to_decision()."""
++    cfg = config()
++    thr = cfg["thresholds"]
++    picked, needs_review = {}, []
++    for name, ans in answers.items():
++        probs = ans["probabilities"]
++        key = max(probs, key=probs.get)
++        conf = float(ans["confidence"])
++        picked[name] = {"value": key, "confidence": round(conf, 4)}
++        if conf < thr.get(name, thr.get("default", 0.8)):
++            needs_review.append(name)
++    dept = picked["dzial"]["value"]
++    level = int(picked["pilnosc"]["value"]) + 1          # poziom Basala 1..3 (1 = najniższy)
++    dpa = picked["raport_dpa"]["value"] == "true"
++    role = picked["osoba"]["value"]
++    return {
++        "priority": cfg["dpa_priority"] if dpa else cfg["priority_from_level"][str(level)],  # P1 = najwyższy
++        "dept": dept,
++        "route_role": cfg["route_role"].get(dept, "chief_engineer"),
++        "assignee": cfg["assignee"].get(role),
++        "sector": picked["sektor"]["value"] if "sektor" in picked else None,
++        "needs_officer": bool(needs_review),
++        "notes": [f"basal: {n}={v['value']} ({v['confidence']:.2f})" for n, v in picked.items()],
++        "_basal": {"decisions": picked, "needs_review": needs_review, "dpa_report": dpa, "assignee_role": role},
++    }
++
++
++def annotate_form(form: dict) -> dict:
++    """Pyta Basala o treść formularza i zapamiętuje odpowiedzi w polach wewnętrznych (zostają na statku).
++
++    Sektor: gdy reguły nie rozpoznały konkretnego urządzenia (`_equipment_id`), a Basal jest dość pewny,
++    `location` = etykieta sektora z frontendu (np. "Bow & mooring") — frontend (sectorOf) stawia
++    zgłoszenie w tym miejscu przekroju statku.
++    """
++    text = form.get("_text") or ""
++    if not text.strip():
++        return form
++    answers = ask_basal(text)
++    out = dict(form)
++    out["_basal_answers"], out["_basal_for"] = answers, text
++    sec = answers.get("sektor")
++    if sec:
++        probs = sec["probabilities"]
++        key = max(probs, key=probs.get)
++        cfg = config()
++        out["_sector"] = key
++        if float(sec["confidence"]) >= cfg.get("sector_min_conf", 0.5) and not form.get("_equipment_id"):
++            out["location"] = cfg["sector_labels"][key]
++    return out
++
++
++def cached_answers(form: dict) -> dict | None:
++    """Odpowiedzi Basala z structure(), jeśli dotyczą bieżącej treści."""
++    if form.get("_basal_answers") and form.get("_basal_for") == form.get("_text"):
++        return form["_basal_answers"]
++    return None
++
++
++def merge(decision: dict, text: str, answers: dict | None = None) -> dict:
++    """Uzupełnia decyzję z reguł (czujniki, pytania zwrotne, alarm) o decyzję Basala.
++
++    Nie rusza decyzji, gdy jest pytanie zwrotne (najpierw odpowiedź człowieka).
++    Zachowuje: alarm z reguł (P1, oficer, ship/{id}/bridge/alert), sprawdzenia czujników
++    i niezgodność z czujnikiem (wtedy zawsze oficer — needs_officer nadpisuje w serwerze ten warunek).
++    """
++    if decision.get("clarification") is not None or not text.strip():
++        return decision
++    b = to_decision(answers if answers is not None else ask_basal(text))
++    out = dict(decision)
++    alarm = bool(decision.get("alarm"))
++    out["alarm"] = alarm
++    out["priority"] = 1 if alarm else b["priority"]
++    out["dept"] = b["dept"]
++    out["route_role"] = "officer" if alarm else b["route_role"]
++    out["assignee"] = b["assignee"]
++    sensor_mismatch = any(c.get("ok") is False for c in decision.get("checks") or [])
++    out["needs_officer"] = b["needs_officer"] or sensor_mismatch or alarm
++    out["notes"] = list(decision.get("notes") or []) + b["notes"]
++    out["_basal"] = b["_basal"]
++    return out
+diff --git a/mozg-statku/server/tests/conftest.py b/mozg-statku/server/tests/conftest.py
+new file mode 100644
+index 0000000..bd205e4
+--- /dev/null
++++ b/mozg-statku/server/tests/conftest.py
+@@ -0,0 +1,8 @@
++import pytest
++
++
++@pytest.fixture(autouse=True)
++def _decision_layer_off(monkeypatch):
++    """Testy rdzenia nie zależą od tego, czy na komputerze działa serwer Basala.
++    Testy warstwy decyzyjnej włączają ją same (DECISION_ENABLED=1)."""
++    monkeypatch.setenv("DECISION_ENABLED", "0")
+diff --git a/mozg-statku/server/tests/test_decision_plugin.py b/mozg-statku/server/tests/test_decision_plugin.py
+new file mode 100644
+index 0000000..41d3e78
+--- /dev/null
++++ b/mozg-statku/server/tests/test_decision_plugin.py
+@@ -0,0 +1,177 @@
++"""Warstwa decyzyjna (plugins/decision.py) z atrapą serwera Basala — bez GPU i bez modelu."""
++from __future__ import annotations
++
++import json
++import threading
++from http.server import BaseHTTPRequestHandler, HTTPServer
++
++import pytest
++
++from plugins import brain, decision
++
++
++# pilnosc = klucz odpowiedzi Basala: "0" -> P3 (rutyna), "2" -> P1 (pilne)
++def _answers(dzial="engine", dzial_p=0.95, pilnosc=0, dpa=False, osoba="2nd_engineer", osoba_p=0.9,
++             sektor="engine", sektor_p=0.8):
++    def choice(keys, pick, p):
++        rest = (1 - p) / (len(keys) - 1)
++        return {k: (p if k == pick else rest) for k in keys}
++    q = decision.config()["questions"]
++    return {
++        "dzial": {"probabilities": choice(list(q["dzial"]["criteria"]), dzial, dzial_p), "confidence": dzial_p},
++        "pilnosc": {"probabilities": choice(["0", "1", "2"], str(pilnosc), 0.7), "confidence": 0.7},
++        "raport_dpa": {"probabilities": choice(["true", "false"], "true" if dpa else "false", 0.97), "confidence": 0.97},
++        "osoba": {"probabilities": choice(list(q["osoba"]["criteria"]), osoba, osoba_p), "confidence": osoba_p},
++        "sektor": {"probabilities": choice(list(q["sektor"]["criteria"]), sektor, sektor_p), "confidence": sektor_p},
++    }
++
++
++@pytest.fixture
++def fake_basal(monkeypatch):
++    state = {"answers": _answers(), "requests": []}
++
++    class H(BaseHTTPRequestHandler):
++        def log_message(self, *a):
++            pass
++
++        def do_POST(self):
++            body = json.loads(self.rfile.read(int(self.headers["content-length"])))
++            state["requests"].append(body)
++            out = json.dumps({"model": "fake-basal", "answers": state["answers"]}).encode()
++            self.send_response(200)
++            self.send_header("content-type", "application/json")
++            self.end_headers()
++            self.wfile.write(out)
++
++    srv = HTTPServer(("127.0.0.1", 0), H)
++    threading.Thread(target=srv.serve_forever, daemon=True).start()
++    monkeypatch.setenv("BASAL_URL", f"http://127.0.0.1:{srv.server_port}/v1/systemone")
++    monkeypatch.setenv("DECISION_ENABLED", "1")
++    yield state
++    srv.shutdown()
++
++
++CTX = {"report_id": "r1", "crew": {"crew_id": "marek", "role": "motorman", "lang": "pl"},
++       "equipment": json.loads((decision.CONFIG_PATH.parent / "equipment.json").read_text()), "round": 0}
++
++
++def test_sends_only_text_and_questions(fake_basal):
++    form = brain.structure("Obchód maszynowni zrobiony, wszystko w normie.", "pl", CTX)
++    brain.check(form, _NoSensors(), CTX)
++    req = fake_basal["requests"][-1]
++    assert set(req) == {"state", "questions"}
++    assert req["state"] == "Obchód maszynowni zrobiony, wszystko w normie."
++
++
++def test_confident_routine_report_is_auto_approved_and_assigned(fake_basal):
++    form = brain.structure("Obchód maszynowni zrobiony, wszystko w normie.", "pl", CTX)
++    dec = brain.check(form, _NoSensors(), CTX)
++    assert dec["needs_officer"] is False
++    assert dec["priority"] == 3 and dec["dept"] == "engine" and dec["route_role"] == "chief_engineer"
++    assert dec["assignee"] == "tom"
++
++
++def test_low_confidence_goes_to_officer(fake_basal):
++    fake_basal["answers"] = _answers(osoba="officer", osoba_p=0.4, dzial="deck")
++    dec = brain.check(brain.structure("Lina na rufie przetarta.", "pl", CTX), _NoSensors(), CTX)
++    assert dec["needs_officer"] is True
++    assert dec["route_role"] == "officer" and dec["assignee"] == "ivan"     # rola z frontendu
++
++
++def test_dpa_report_gets_p1_but_not_bridge_alarm(fake_basal):
++    fake_basal["answers"] = _answers(pilnosc=0, dpa=True)
++    dec = brain.check(brain.structure("Ktoś prawie spadł ze schodów.", "pl", CTX), _NoSensors(), CTX)
++    assert dec["priority"] == 1 and dec["alarm"] is False
++
++
++def test_urgent_order_is_p1_without_alarm(fake_basal):
++    fake_basal["answers"] = _answers(pilnosc=2)
++    dec = brain.check(brain.structure("Nie ma już filtrów paliwa, trzeba pilnie zamówić.", "pl", CTX), _NoSensors(), CTX)
++    assert dec["priority"] == 1 and dec["alarm"] is False
++
++
++def test_alarm_from_rules_is_kept(fake_basal):
++    dec = brain.check(brain.structure("Dym w maszynowni przy agregacie numer jeden!", "pl", CTX), _NoSensors(), CTX)
++    assert dec["priority"] == 1 and dec["alarm"] is True
++    assert dec["route_role"] == "officer" and dec["needs_officer"] is True
++
++
++def test_clarification_waits_for_human(fake_basal):
++    dec = brain.check(brain.structure("Pompa chłodzenia, przeciek na uszczelnieniu.", "pl", CTX), _NoSensors(), CTX)
++    assert dec["clarification"] is not None
++    assert len(fake_basal["requests"]) == 1      # tylko structure() (sektor na mapę) — check() nie pyta
++    assert "_basal" not in dec and dec.get("assignee") is None   # decyzja czeka na odpowiedź człowieka
++
++
++def test_basal_unavailable_does_not_stop_report(monkeypatch):
++    monkeypatch.setenv("BASAL_URL", "http://127.0.0.1:9/v1/systemone")
++    monkeypatch.setenv("DECISION_ENABLED", "1")
++    dec = brain.check(brain.structure("Obchód zrobiony.", "pl", CTX), _NoSensors(), CTX)
++    assert any("basal unavailable" in n for n in dec["notes"])
++    assert "needs_officer" not in dec or dec["needs_officer"] is None
++
++
++class _NoSensors:
++    def get(self, tag):
++        return None
++
++    def all(self):
++        return {}
++
++
++def test_everyday_phrase_is_not_a_smoke_alarm():
++    from plugins import _stubs
++    form = _stubs.brain_structure("w każdym razie wszystko w normie", "pl", CTX)
++    assert not form.get("_alarm") and form["priority"] == 3
++    assert _stubs.brain_structure("dym w maszynowni", "pl", CTX)["_alarm"] is True
++
++
++def test_fire_equipment_and_drills_are_not_alarms():
++    from plugins import _stubs
++    for text in ["During the fire drill today one breathing apparatus was at half pressure",
++                 "Bosun, the fire hose at station number four, the coupling is broken",
++                 "proszę na jutro przygotować inspekcję, gaśnice sprawdzone, ćwiczenia pożarowe po obiedzie"]:
++        assert not _stubs.brain_structure(text, "en", CTX).get("_alarm"), text
++    assert _stubs.brain_structure("Fire in the engine room!", "en", CTX)["_alarm"] is True
++    assert _stubs.brain_structure("Pożar w kuchni!", "pl", CTX)["_alarm"] is True
++
++
++def test_bridge_alert_only_for_alarm_not_for_p1():
++    from app.notify import Notifier  # noqa: F401  (sprawdzamy kod: alert zależy od flagi alarm)
++    import inspect
++    from app import notify
++    src = inspect.getsource(notify)
++    assert 'if p.get("alarm"):' in src and ">= 5" not in src
++
++
++def test_priority_scale_is_1_to_3():
++    import pydantic
++    from app.contracts import Decision, ReportForm
++    assert Decision(priority=1).priority == 1 and ReportForm(priority=3).priority == 3
++    for bad in (0, 4, 5):
++        with pytest.raises(pydantic.ValidationError):
++            Decision(priority=bad)
++
++
++def test_sector_goes_to_form_location_for_frontend_map(fake_basal):
++    fake_basal["answers"] = _answers(dzial="deck", osoba="officer", sektor="deck")
++    form = brain.structure("Lina cumownicza na dziobie przetarta.", "pl", CTX)
++    assert form["location"] == "Main deck" and form["_sector"] == "deck"
++    n = len(fake_basal["requests"])
++    brain.check(form, _NoSensors(), CTX)
++    assert len(fake_basal["requests"]) == n          # check() używa odpowiedzi z structure()
++
++
++def test_unsure_sector_or_known_equipment_keeps_rule_location(fake_basal):
++    fake_basal["answers"] = _answers(sektor="galley", sektor_p=0.3)
++    form = brain.structure("Coś stuka.", "pl", CTX)
++    assert form.get("location") != "Galley & mess"
++    fake_basal["answers"] = _answers(sektor="bridge", sektor_p=0.9)
++    form = brain.structure("Pompa chłodzenia nr 2, przeciek na uszczelnieniu.", "pl", CTX)
++    if form.get("_equipment_id"):                    # rozpoznane urządzenie -> jego dokładne miejsce
++        assert form["location"] != "Bridge"
++
++
++def test_server_sectors_are_the_four_main_ones():
++    assert set(decision.config()["sector_labels"]) == {"engine", "deck", "galley", "bridge"}
++    assert set(decision.config()["questions"]["sektor"]["criteria"]) == {"engine", "deck", "galley", "bridge"}

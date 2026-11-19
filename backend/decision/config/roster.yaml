@@ -1,0 +1,16 @@
+# Załoga do metadanych zgłoszeń ("kto zgłosił") = osoby z mozg-statku/server/config/crew.json,
+# które mogą zalogować się we frontendzie (role 2nd_engineer, chief_engineer, officer).
+# `jezyk` = język, w którym zwykle nagrywa zgłoszenia. Osoby fikcyjne.
+
+statek:
+  nazwa: "MV Demo"
+  ship_id: "demo"          # jak SHIP_ID w mozg-statku/docker-compose.yml
+
+zaloga:
+  - {crew_id: tom,     imie: "Tom",     rola: 2nd_engineer,   stopien: 2nd_engineer,  dzial: engine, jezyk: en}
+  - {crew_id: anna,    imie: "Anna",    rola: chief_engineer, stopien: chief_engineer, dzial: engine, jezyk: pl}
+  - {crew_id: ivan,    imie: "Ivan",    rola: officer,        stopien: chief_officer, dzial: deck,   jezyk: en}
+  - {crew_id: kapitan, imie: "Captain", rola: officer,        stopien: master,        dzial: deck,   jezyk: pl}
+
+# Skąd zgłoszenie mogło zostać nadane
+urzadzenia: ["phone", "phone", "phone", "ecr-terminal", "bridge-tablet"]
