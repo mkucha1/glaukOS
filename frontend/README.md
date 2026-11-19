@@ -1,4 +1,4 @@
-# Ship Brain — PWA (frontend)
+# GlaukOS — PWA (frontend)
 
 React + Vite + TypeScript, Tailwind, Dexie (IndexedDB), MQTT.js, vite-plugin-pwa.
 Project context and team contracts: [CLAUDE.md](CLAUDE.md).
@@ -76,4 +76,4 @@ src/
     profile.ts          name/role "login", device id
 ```
 
-`node scripts/gen-icons.mjs` regenerates the PWA icons.
+PWA icons in `public/icons/` and `public/favicon.png` are rendered from `public/logo.png` on the navy background.

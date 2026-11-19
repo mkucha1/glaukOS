@@ -35,7 +35,7 @@ export function MindMap({ root, nodes }: { root: { caption: string; label: strin
     <div className="grid items-stretch" style={{ gridTemplateColumns: `minmax(0, 116px) ${ARM}px minmax(0, 1fr)` }}>
       <div className="flex items-center">
         <div className="w-full rounded-2xl bg-cream p-3 text-navy shadow-lg shadow-ink/30">
-          <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-navy/60">{root.caption}</div>
+          <div className="text-[11px] font-medium text-navy/60">{root.caption}</div>
           <div className="mt-0.5 line-clamp-3 text-[13px] font-semibold leading-snug">{root.label}</div>
         </div>
       </div>
@@ -64,7 +64,7 @@ export function MindMap({ root, nodes }: { root: { caption: string; label: strin
             <>
               <span className={cx('h-2 w-2 shrink-0 rounded-full', DOT[n.tone])} />
               <span className="min-w-0 flex-1 text-left">
-                <span className="block truncate font-mono text-[10px] uppercase tracking-wider text-cream/50">{n.caption}</span>
+                <span className="block truncate text-[11px] text-cream/50">{n.caption}</span>
                 <span className="block truncate text-[13.5px] font-medium leading-tight">{n.label}</span>
               </span>
               {n.onClick && (

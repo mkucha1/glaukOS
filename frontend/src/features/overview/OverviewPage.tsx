@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, Eyebrow, cx } from '../../components/ui';
+import { Card, cx } from '../../components/ui';
 import { config } from '../../config';
 import { useEvents, useReports } from '../../lib/store';
 import { SEVERITY, enrich, relatedTo, reportsFor, sameFocus, type Focus, type Severity } from '../../lib/ship';
@@ -56,19 +56,20 @@ export function OverviewPage() {
   const lastTs = events.length ? events[events.length - 1].ts : null;
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-6 overflow-x-clip px-4 pb-20 pt-6 sm:pt-8">
+    <main className="mx-auto flex max-w-7xl flex-col gap-5 overflow-x-clip px-4 pb-10 pt-5 sm:gap-6 sm:pt-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Eyebrow className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok opacity-60 motion-reduce:hidden" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-ok" />
-            </span>
-            {vesselName} · live register{lastTs && ` · ${new Date(lastTs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-          </Eyebrow>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Ship overview</h1>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{vesselName}</h1>
+          <p className="mt-1 text-[15px] text-cream/55">
+            {all.length} reports on record
+            {lastTs && `, last update ${new Date(lastTs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Show pins">
+        <div
+          className="no-scrollbar -mx-4 flex w-[calc(100%+2rem)] gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0"
+          role="group"
+          aria-label="Show pins"
+        >
           {FILTERS.map((s) => {
             const on = shown.has(s);
             return (
@@ -84,7 +85,7 @@ export function OverviewPage() {
                   })
                 }
                 className={cx(
-                  'press inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium',
+                  'press inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-sm font-medium',
                   on ? 'border-cream/25 bg-cream/10 text-cream' : 'border-cream/10 text-cream/45 hover:text-cream/70',
                 )}
               >

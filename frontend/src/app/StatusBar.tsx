@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { config } from '../config';
 import { db } from '../lib/db';
 import { useBusState, useLiveQuery, useSyncStatus } from '../lib/hooks';
@@ -8,24 +8,66 @@ import { roleLabel, useProfile } from '../lib/profile';
 import { api } from '../lib/api';
 import { Avatar, Logo, cx } from '../components/ui';
 
-function Indicator({ tone, label, value }: { tone: 'ok' | 'warn' | 'alert'; label: string; value?: ReactNode }) {
-  const dot = { ok: 'bg-ok', warn: 'bg-warn', alert: 'bg-alert' }[tone];
-  return (
-    <span className="inline-flex h-8 items-center gap-2 rounded-full bg-ink/25 px-3 text-xs font-medium text-cream/80" title={label}>
-      <span className={cx('h-2 w-2 rounded-full', dot)} />
-      <span className="hidden sm:inline">{label}</span>
-      {value !== undefined && <span className="font-mono font-semibold text-cream">{value}</span>}
-    </span>
-  );
-}
+// ---------- icons (24px, 1.8 stroke) ----------
 
-/** Origin-aware popover for demo controls; closes on outside press or Escape. */
-function DemoMenu() {
+const Icon = ({ d, className }: { d: ReactNode; className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="24"
+    height="24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+    className={className}
+  >
+    {d}
+  </svg>
+);
+const ShipIcon = () => (
+  <Icon
+    d={
+      <>
+        <path d="M3 15h18l-2.5 5h-13z" />
+        <path d="M6 15V9h12v6M9 9V5h4v4" />
+      </>
+    }
+  />
+);
+const ApproveIcon = () => (
+  <Icon
+    d={
+      <>
+        <rect x="4" y="3.5" width="16" height="17" rx="2.5" />
+        <path d="m8.5 12 2.5 2.5 4.5-5" />
+      </>
+    }
+  />
+);
+const HandoverIcon = () => (
+  <Icon
+    d={
+      <>
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M12 7.5V12l3 2" />
+      </>
+    }
+  />
+);
+const MicIcon = ({ size = 30 }: { size?: number }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+    <rect x="9" y="3" width="6" height="11.5" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" />
+  </svg>
+);
+
+// ---------- shared popover behaviour ----------
+
+function usePopover() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { status: sync, refresh } = useSyncStatus();
-  const [dead, setDead] = useState(isDeadZone());
-
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
@@ -37,65 +79,124 @@ function DemoMenu() {
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
+  return { open, setOpen, ref };
+}
 
-  const row = 'press flex w-full items-center justify-between gap-4 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-cream/5';
+function Toggle({ on, tone = 'ok' }: { on: boolean; tone?: 'ok' | 'warn' }) {
+  return (
+    <span
+      className={cx(
+        'relative inline-block h-7 w-12 shrink-0 rounded-full transition-colors duration-200',
+        on ? (tone === 'ok' ? 'bg-ok' : 'bg-warn') : 'bg-cream/15',
+      )}
+    >
+      <span
+        className="absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-cream shadow transition-transform duration-200"
+        style={{ transform: on ? 'translateX(20px)' : 'none', transitionTimingFunction: 'var(--ease-out)' }}
+      />
+    </span>
+  );
+}
+
+// ---------- one status button instead of a row of chips ----------
+
+function useConnectivity() {
+  const bus = useBusState();
+  const outbox = useLiveQuery(() => db.outbox.where('status').anyOf('pending', 'sending', 'failed').count(), [], 0);
+  const { status: sync, refresh } = useSyncStatus();
+  let tone: 'ok' | 'warn' | 'alert' = 'ok';
+  let label = 'Online';
+  if (bus !== 'connected') [tone, label] = ['alert', outbox ? `Offline · ${outbox} to send` : 'Offline'];
+  else if (outbox) [tone, label] = ['warn', `Sending ${outbox}`];
+  else if (sync && !sync.link_up) [tone, label] = ['warn', 'No shore link'];
+  return { bus, outbox, sync, refresh, tone, label };
+}
+
+function StatusButton() {
+  const { open, setOpen, ref } = usePopover();
+  const c = useConnectivity();
+  const [dead, setDead] = useState(isDeadZone());
+  const dot = { ok: 'bg-ok', warn: 'bg-warn', alert: 'bg-alert' }[c.tone];
+
+  const row = (title: string, detail: string, tone: 'ok' | 'warn' | 'alert') => (
+    <div className="flex items-center gap-3 px-3 py-2.5">
+      <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', { ok: 'bg-ok', warn: 'bg-warn', alert: 'bg-alert' }[tone])} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="block text-[13px] text-cream/55">{detail}</span>
+      </span>
+    </div>
+  );
+  const action = 'press flex min-h-14 w-full items-center justify-between gap-4 rounded-xl px-3 text-left text-sm hover:bg-cream/5';
 
   return (
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-label={`Connection: ${c.label}`}
         className={cx(
-          'press inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold',
-          open ? 'border-cream bg-cream text-navy' : 'border-cream/20 text-cream/80 hover:border-cream/40',
+          'press inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-sm font-medium',
+          open ? 'border-cream bg-cream text-navy' : 'border-cream/15 bg-ink/20 hover:border-cream/30',
         )}
       >
-        Demo
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 10 10"
-          aria-hidden
-          className={cx('transition-transform duration-150', open && 'rotate-180')}
-        >
-          <path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
+        <span className={cx('h-2 w-2 rounded-full', dot)} />
+        {c.label}
       </button>
       {open && (
-        <div className="popover absolute right-0 top-10 z-40 w-72 rounded-2xl border border-cream/15 bg-navy-deep p-2 shadow-2xl shadow-ink/60">
+        <div className="popover absolute right-0 top-12 z-50 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-cream/15 bg-navy-deep p-1.5 shadow-2xl shadow-ink/60">
+          {row(
+            'Ship server',
+            c.bus === 'connected'
+              ? 'Connected over ship Wi-Fi'
+              : c.bus === 'connecting'
+                ? 'Reconnecting…'
+                : 'Unreachable. Reports are kept on this phone.',
+            c.bus === 'connected' ? 'ok' : c.bus === 'connecting' ? 'warn' : 'alert',
+          )}
+          {row(
+            'This device',
+            c.outbox ? `${c.outbox} recording${c.outbox > 1 ? 's' : ''} waiting to send` : 'Everything sent',
+            c.outbox ? 'warn' : 'ok',
+          )}
+          {row(
+            'Shore link',
+            !c.sync
+              ? 'Unknown'
+              : c.sync.link_up
+                ? `Up · ${c.sync.queued} queued for shore`
+                : `Down · ${c.sync.queued} events held on board`,
+            !c.sync ? 'alert' : c.sync.link_up ? 'ok' : 'warn',
+          )}
+          <div className="my-1.5 h-px bg-cream/10" />
+          <div className="px-3 pb-1 pt-1 text-xs font-medium text-cream/45">Demo controls</div>
           <button
-            className={row}
-            disabled={!sync}
+            className={action}
+            disabled={!c.sync}
             onClick={async () => {
-              if (!sync) return;
-              await api.setLink(!sync.link_up).catch(console.error);
-              refresh();
+              if (!c.sync) return;
+              await api.setLink(!c.sync.link_up).catch(console.error);
+              c.refresh();
             }}
           >
-            <span>
-              <span className="block font-semibold">Satellite link</span>
-              <span className="text-xs text-cream/55">{sync ? `${sync.queued} events queued for shore` : 'Server unreachable'}</span>
-            </span>
-            <Toggle on={!!sync?.link_up} />
+            <span className="font-medium">Satellite link</span>
+            <Toggle on={!!c.sync?.link_up} />
           </button>
           {config.mock && (
             <button
-              className={row}
+              className={action}
               onClick={() => {
                 setDeadZone(!dead);
                 setDead(!dead);
               }}
             >
-              <span>
-                <span className="block font-semibold">Wi-Fi dead zone</span>
-                <span className="text-xs text-cream/55">Simulate losing the ship server</span>
-              </span>
+              <span className="font-medium">Wi-Fi dead zone</span>
               <Toggle on={dead} tone="warn" />
             </button>
           )}
           {config.mock && (
             <button
-              className={cx(row, 'text-alert')}
+              className={cx(action, 'text-alert')}
               onClick={async () => {
                 if (!confirm('Reset the demo register? Mock events and the local cache will be cleared.')) return;
                 mockServer.reset();
@@ -103,7 +204,7 @@ function DemoMenu() {
                 location.reload();
               }}
             >
-              <span className="font-semibold">Reset demo data</span>
+              <span className="font-medium">Reset demo data</span>
             </button>
           )}
         </div>
@@ -112,56 +213,102 @@ function DemoMenu() {
   );
 }
 
-function Toggle({ on, tone = 'ok' }: { on: boolean; tone?: 'ok' | 'warn' }) {
+function AccountButton({ variant }: { variant: 'top' | 'tab' }) {
+  const { profile, setProfile } = useProfile();
+  const navigate = useNavigate();
+  const { open, setOpen, ref } = usePopover();
+
+  if (!profile)
+    return variant === 'top' ? (
+      <Link to="/role" className="press rounded-full bg-cream px-4 py-2 text-sm font-semibold text-navy">
+        Sign in
+      </Link>
+    ) : (
+      <NavLink to="/role" className="press flex h-full flex-col items-center justify-center gap-1 text-cream/60">
+        <Avatar actor="x:?" size={26} />
+        <span className="text-[11px] font-medium">Sign in</span>
+      </NavLink>
+    );
+
   return (
-    <span
-      className={cx(
-        'relative inline-block h-6 w-10 shrink-0 rounded-full transition-colors duration-200',
-        on ? (tone === 'ok' ? 'bg-ok' : 'bg-warn') : 'bg-cream/15',
+    <div ref={ref} className={cx('relative', variant === 'tab' && 'h-full')}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label={`${profile.name}, ${roleLabel(profile.role)}`}
+        className={cx(
+          'press flex items-center',
+          variant === 'top' ? 'gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-cream/5' : 'h-full w-full flex-col justify-center gap-1',
+          variant === 'tab' && (open ? 'text-cream' : 'text-cream/60'),
+        )}
+      >
+        <Avatar actor={`x:${profile.name}`} size={variant === 'top' ? 30 : 26} />
+        {variant === 'top' ? (
+          <span className="text-left text-xs leading-tight">
+            <span className="block font-semibold">{profile.name}</span>
+            <span className="text-cream/55">{roleLabel(profile.role)}</span>
+          </span>
+        ) : (
+          <span className="text-[11px] font-medium">{profile.name.split(' ')[0]}</span>
+        )}
+      </button>
+      {open && (
+        <div
+          className={cx(
+            'popover absolute z-50 w-64 rounded-2xl border border-cream/15 bg-navy-deep p-1.5 shadow-2xl shadow-ink/60',
+            variant === 'top' ? 'right-0 top-12' : 'bottom-[calc(100%+12px)] right-1 origin-bottom-right',
+          )}
+          style={variant === 'tab' ? { transformOrigin: 'bottom right' } : undefined}
+        >
+          <div className="px-3 py-2.5">
+            <div className="font-semibold">{profile.name}</div>
+            <div className="text-[13px] text-cream/55">{roleLabel(profile.role)}</div>
+          </div>
+          <button
+            onClick={() => {
+              setOpen(false);
+              setProfile(null);
+              navigate('/role');
+            }}
+            className="press flex min-h-14 w-full items-center rounded-xl px-3 text-left text-sm font-medium hover:bg-cream/5"
+          >
+            Switch user
+          </button>
+        </div>
       )}
-    >
-      <span
-        className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-cream shadow transition-transform duration-200"
-        style={{ transform: on ? 'translateX(16px)' : 'none', transitionTimingFunction: 'var(--ease-out)' }}
-      />
-    </span>
+    </div>
   );
 }
 
-export function StatusBar() {
-  const { profile, setProfile } = useProfile();
-  const navigate = useNavigate();
-  const busState = useBusState();
-  const queued = useLiveQuery(() => db.outbox.where('status').anyOf('pending', 'sending', 'failed').count(), [], 0);
-  const { status: sync } = useSyncStatus();
+// ---------- top bar: full nav on desktop, slim on phones ----------
 
-  const tabs: [string, string][] = [
-    ['/', 'Ship'],
-    ['/mechanic', 'Report'],
-    ['/officer', 'Approvals'],
-    ['/handover', 'Handover'],
-  ];
+const TABS: [string, string, () => ReactNode][] = [
+  ['/', 'Ship', ShipIcon],
+  ['/mechanic', 'Report', () => <MicIcon size={22} />],
+  ['/officer', 'Approvals', ApproveIcon],
+  ['/handover', 'Handover', HandoverIcon],
+];
 
+export function TopBar() {
   return (
     <header
-      className="sticky top-0 z-30 border-b border-cream/10 bg-navy/85 backdrop-blur-xl"
+      className="sticky top-0 z-30 border-b border-cream/10 bg-navy/90 backdrop-blur-xl"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4">
         <Link to="/" className="flex items-center gap-2.5">
-          <Logo size={26} />
-          <span className="text-[15px] font-semibold tracking-tight">Ship Brain</span>
+          <Logo size={34} />
+          <span className="text-[15px] font-semibold tracking-tight">GlaukOS</span>
         </Link>
-
-        <nav className="order-last -mx-1 flex w-full gap-1 overflow-x-auto px-1 md:order-none md:w-auto">
-          {tabs.map(([to, label]) => (
+        <nav className="hidden gap-1 md:flex">
+          {TABS.map(([to, label]) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
                 cx(
-                  'press shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium',
+                  'press rounded-full px-4 py-2 text-sm font-medium',
                   isActive ? 'bg-cream text-navy' : 'text-cream/70 hover:bg-cream/5 hover:text-cream',
                 )
               }
@@ -170,41 +317,60 @@ export function StatusBar() {
             </NavLink>
           ))}
         </nav>
-
-        <div className="ml-auto flex items-center gap-1.5">
-          <Indicator
-            tone={busState === 'connected' ? 'ok' : busState === 'connecting' ? 'warn' : 'alert'}
-            label={busState === 'connected' ? 'Server' : busState === 'connecting' ? 'Connecting' : 'Offline'}
-          />
-          <Indicator tone={queued ? 'warn' : 'ok'} label="Outbox" value={queued} />
-          <Indicator
-            tone={!sync ? 'alert' : sync.link_up ? 'ok' : 'warn'}
-            label={sync?.link_up === false ? 'Shore down' : 'Shore'}
-            value={sync ? sync.queued : '–'}
-          />
-          <DemoMenu />
-          {profile ? (
-            <button
-              onClick={() => {
-                setProfile(null);
-                navigate('/role');
-              }}
-              title={`${profile.name} · ${roleLabel(profile.role)} — switch user`}
-              className="press ml-1 flex items-center gap-2 rounded-full py-0.5 pl-0.5 pr-0.5 hover:bg-cream/5 sm:pr-3"
-            >
-              <Avatar actor={`x:${profile.name}`} />
-              <span className="hidden text-left text-xs leading-tight sm:block">
-                <span className="block font-semibold">{profile.name}</span>
-                <span className="text-cream/55">{roleLabel(profile.role)}</span>
-              </span>
-            </button>
-          ) : (
-            <Link to="/role" className="press ml-1 rounded-full bg-cream px-3.5 py-1.5 text-xs font-semibold text-navy">
-              Sign in
-            </Link>
-          )}
+        <div className="ml-auto flex items-center gap-2">
+          <StatusButton />
+          <div className="hidden md:block">
+            <AccountButton variant="top" />
+          </div>
         </div>
       </div>
     </header>
+  );
+}
+
+// ---------- bottom tab bar on phones, big mic in the middle ----------
+
+export function BottomNav() {
+  const { pathname } = useLocation();
+  const tab = (to: string, label: string, icon: ReactNode) => (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      className={({ isActive }) =>
+        cx('press flex h-full flex-col items-center justify-center gap-1', isActive ? 'text-cream' : 'text-cream/55')
+      }
+    >
+      {icon}
+      <span className="text-[11px] font-medium">{label}</span>
+    </NavLink>
+  );
+  const recording = pathname === '/mechanic';
+
+  return (
+    <nav
+      aria-label="Main"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-cream/10 bg-navy-deep/95 backdrop-blur-xl md:hidden"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="mx-auto grid h-[68px] max-w-md grid-cols-5 items-stretch px-2">
+        {tab('/', 'Ship', <ShipIcon />)}
+        {tab('/officer', 'Approvals', <ApproveIcon />)}
+        <div className="relative flex justify-center">
+          <NavLink
+            to="/mechanic"
+            aria-label="Report by voice"
+            className={cx(
+              'press absolute -top-6 grid h-[72px] w-[72px] place-items-center rounded-full border-[5px] border-navy-deep shadow-lg shadow-ink/50',
+              recording ? 'bg-steel text-ink' : 'bg-cream text-navy',
+            )}
+          >
+            <MicIcon />
+          </NavLink>
+          <span className={cx('mt-auto pb-2 text-[11px] font-medium', recording ? 'text-cream' : 'text-cream/55')}>Report</span>
+        </div>
+        {tab('/handover', 'Handover', <HandoverIcon />)}
+        <AccountButton variant="tab" />
+      </div>
+    </nav>
   );
 }

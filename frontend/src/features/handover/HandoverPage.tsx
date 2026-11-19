@@ -43,8 +43,8 @@ export function HandoverPage() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-20 pt-8">
       <div>
-        <Eyebrow>Engine room · 60-second briefing</Eyebrow>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Watch handover</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Watch handover</h1>
+        <p className="mt-1 text-[15px] text-cream/55">A one-minute spoken summary for the next watch.</p>
       </div>
 
       <div className="grid grid-cols-3 gap-1 rounded-2xl bg-ink/25 p-1 sm:grid-cols-6" role="radiogroup" aria-label="Watch">

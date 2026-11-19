@@ -5,7 +5,7 @@ import { bus } from '../lib/mqtt';
 import { startOutbox } from '../lib/outbox';
 import { loadProfile, ProfileContext, saveProfile, useProfile, type Profile } from '../lib/profile';
 import { ingest, loadCachedEvents } from '../lib/store';
-import { StatusBar } from './StatusBar';
+import { BottomNav, TopBar } from './StatusBar';
 import { RolePage } from '../features/role/RolePage';
 import { OverviewPage } from '../features/overview/OverviewPage';
 import { MechanicPage } from '../features/mechanic/MechanicPage';
@@ -39,8 +39,8 @@ function useBootstrap(profile: Profile | null) {
 function Shell() {
   const { pathname } = useLocation();
   return (
-    <div className="min-h-dvh bg-navy text-cream">
-      {pathname !== '/role' && <StatusBar />}
+    <div className="min-h-dvh bg-navy text-cream max-md:pb-[calc(84px+env(safe-area-inset-bottom))]">
+      {pathname !== '/role' && <TopBar />}
       <Routes>
         <Route path="/" element={<OverviewPage />} />
         <Route path="/role" element={<RolePage />} />
@@ -63,6 +63,7 @@ function Shell() {
         <Route path="/handover" element={<HandoverPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      {pathname !== '/role' && <BottomNav />}
     </div>
   );
 }

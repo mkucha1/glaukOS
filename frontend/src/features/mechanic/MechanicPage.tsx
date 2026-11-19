@@ -120,7 +120,7 @@ export function MechanicPage() {
         <Card className="border-2 border-steel bg-steel/15">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-steel">Question about your report</div>
+              <div className="text-[13px] font-medium text-steel">Question about your report</div>
               <div className="mt-1 text-2xl font-semibold leading-tight">{activeQuestion.clarification.question}</div>
             </div>
             {speechSupported && (
@@ -155,7 +155,7 @@ export function MechanicPage() {
 
       {tasks.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55">My tasks</h2>
+          <h2 className="text-[15px] font-semibold">My tasks</h2>
           {tasks.map((t) => (
             <Card key={t.report_id} className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
@@ -176,7 +176,7 @@ export function MechanicPage() {
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55">My reports</h2>
+        <h2 className="text-[15px] font-semibold">My reports</h2>
         {rows.length === 0 && <p className="text-cream/45">No reports yet. Hold the button and describe what you see.</p>}
         {rows.map((r) => (
           <div

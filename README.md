@@ -1,6 +1,8 @@
-# Mózg statku / Ship Brain
+# GlaukOS
 
-Pokładowy rejestr zdarzeń: głos załogi → zatwierdzone wpisy, zadania i briefingi, także bez internetu.
+<img src="frontend/public/logo.png" width="96" alt="GlaukOS logo" />
+
+**Mózg statku**: pokładowy rejestr zdarzeń: głos załogi → zatwierdzone wpisy, zadania i briefingi, także bez internetu.
 Hackathon Kongsberg Maritime × Wydział Informatyki.
 
 ## Struktura repozytorium

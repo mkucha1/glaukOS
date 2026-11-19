@@ -76,7 +76,7 @@ export function OfficerPage() {
     <main className="mx-auto grid max-w-6xl gap-4 px-4 py-4 md:grid-cols-[minmax(280px,360px)_1fr]">
       <aside className={cx('flex flex-col gap-4', current && 'hidden md:flex')}>
         <section className="flex flex-col gap-2">
-          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55">
+          <h2 className="text-[15px] font-semibold">
             Awaiting approval <span className="text-steel">{awaiting.filter((r) => r.status === 'pending_approval').length}</span>
           </h2>
           {awaiting.length === 0 && <p className="text-cream/45">Nothing waiting. New voice reports appear here live.</p>}
@@ -92,7 +92,7 @@ export function OfficerPage() {
         </section>
         {decided.length > 0 && (
           <section className="flex flex-col gap-2">
-            <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55">Decided</h2>
+            <h2 className="text-[15px] font-semibold">Decided</h2>
             {decided.map((r) => (
               <Row key={r.report_id} r={r} active={r.report_id === selected} fresh={false} onClick={() => select(r.report_id)} />
             ))}

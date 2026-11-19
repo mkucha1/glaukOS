@@ -20,10 +20,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
+      includeAssets: ['favicon.png', 'logo.png', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'Mózg statku',
-        short_name: 'Ship Brain',
+        name: 'GlaukOS',
+        short_name: 'GlaukOS',
         description: 'Voice reports to approved log entries, on board and offline.',
         display: 'standalone',
         orientation: 'any',

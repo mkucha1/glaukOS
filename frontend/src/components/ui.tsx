@@ -21,7 +21,7 @@ const STATUS: Record<ReportStatus, { label: string; cls: string }> = {
 export function StatusBadge({ status }: { status: ReportStatus }) {
   const s = STATUS[status];
   return (
-    <span className={cx('inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-[11px] font-semibold uppercase tracking-wider', s.cls)}>
+    <span className={cx('inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-xs font-medium', s.cls)}>
       {s.label}
     </span>
   );
@@ -38,7 +38,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
 }
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx('font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55', className)}>{children}</div>;
+  return <div className={cx('text-[13px] font-medium text-cream/55', className)}>{children}</div>;
 }
 
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'ok' };
@@ -86,11 +86,5 @@ export function Avatar({ actor, size = 28 }: { actor?: string; size?: number }) 
 }
 
 export function Logo({ size = 28 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden>
-      <circle cx="32" cy="32" r="22" fill="none" stroke="var(--color-cream)" strokeWidth="5" />
-      <circle cx="32" cy="32" r="11.5" fill="none" stroke="var(--color-steel)" strokeWidth="5" />
-      <circle cx="32" cy="32" r="4.5" fill="var(--color-cream)" />
-    </svg>
-  );
+  return <img src="/logo.png" width={size} height={size} alt="" aria-hidden className="shrink-0 object-contain" style={{ width: size, height: size }} />;
 }

@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-/* ---------- Design tokens: Ship Brain palette ---------- */
+/* ---------- Design tokens: GlaukOS palette ---------- */
 @theme {
   --color-ink: #000000;
   --color-navy: #122c4f; /* primary surface */
@@ -236,4 +236,11 @@ textarea {
   .bar-grow {
     transition: none;
   }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

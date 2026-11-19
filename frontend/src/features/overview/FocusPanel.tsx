@@ -236,9 +236,8 @@ function Attention({ all, onFocus }: { all: ShipReport[]; onFocus: (f: Focus) =>
   return (
     <div className="enter flex flex-col gap-4" key="attention">
       <div>
-        <Eyebrow>Right now</Eyebrow>
-        <h2 className="mt-1.5 text-xl font-semibold tracking-tight">Needs attention</h2>
-        <p className="mt-1 text-sm text-cream/55">Pick a pin, a sector or a report to see how it connects to the rest of the ship.</p>
+        <h2 className="text-xl font-semibold tracking-tight">Needs attention</h2>
+        <p className="mt-1 text-sm text-cream/55">Tap a report, pin or compartment to see what it connects to.</p>
       </div>
       {urgent.length === 0 ? (
         <div className="rounded-2xl border border-ok/30 bg-ok/10 p-4 text-sm text-ok">All clear. Nothing requires action.</div>

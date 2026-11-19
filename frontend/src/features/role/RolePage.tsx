@@ -31,16 +31,12 @@ export function RolePage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-10 px-5 py-10">
       <div className="enter">
-        <Logo size={44} />
-        <h1 className="mt-6 text-4xl font-semibold tracking-tight">Ship Brain</h1>
+        <Logo size={88} />
+        <h1 className="mt-6 text-4xl font-semibold tracking-tight">GlaukOS</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-cream/60">
           Voice reports become approved log entries, tasks and handovers. On board, even without internet.
         </p>
-        {config.mock && (
-          <span className="mt-4 inline-flex rounded-full bg-warn/15 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-wider text-warn">
-            Mock mode
-          </span>
-        )}
+        {config.mock && <span className="mt-4 inline-flex rounded-full bg-warn/15 px-3 py-1 text-xs font-medium text-warn">Mock mode</span>}
       </div>
       <form onSubmit={submit} className="flex flex-col gap-7">
         <label className="flex flex-col gap-2.5">

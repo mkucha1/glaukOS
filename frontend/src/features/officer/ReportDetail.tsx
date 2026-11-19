@@ -78,9 +78,7 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
       <div className="grid gap-3 lg:grid-cols-2">
         {report.sensor ? (
           <Card className={cx('border-2', report.sensor.matches ? 'border-ok' : 'border-alert')}>
-            <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55">
-              Sensor check · {report.sensor.tag}
-            </div>
+            <div className="text-[13px] font-medium text-cream/55">Sensor check · {report.sensor.tag}</div>
             <div className={cx('mt-1 text-2xl font-semibold', report.sensor.matches ? 'text-ok' : 'text-alert')}>
               {report.sensor.matches ? '✓ Consistent' : '✗ Does not match'}
             </div>
@@ -91,14 +89,14 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
           </Card>
         ) : (
           <Card>
-            <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55">Sensor check</div>
+            <div className="text-[13px] font-medium text-cream/55">Sensor check</div>
             <div className="mt-1 text-cream/45">
               {report.status === 'needs_clarification' ? 'Waiting for crew answer…' : 'Not available'}
             </div>
           </Card>
         )}
         <Card>
-          <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55">
+          <div className="text-[13px] font-medium text-cream/55">
             Original ({report.transcript?.lang ?? '?'}) {form && <>· confidence {Math.round(form.confidence * 100)}%</>}
           </div>
           <div className="mt-1 italic text-cream">{report.transcript ? `“${report.transcript.text}”` : '…'}</div>
@@ -109,7 +107,7 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
       {form && (
         <Card>
           <div className="mb-3 flex items-center gap-2">
-            <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55">Log entry (EN)</h2>
+            <h2 className="text-[15px] font-semibold">Log entry (EN)</h2>
             {!!form.missing_fields?.length && (
               <span className="text-xs font-bold text-warn">Missing: {form.missing_fields.join(', ')}</span>
             )}
@@ -191,7 +189,7 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
       )}
 
       <Card>
-        <h2 className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-cream/55">Timeline</h2>
+        <h2 className="mb-2 text-[15px] font-semibold">Timeline</h2>
         <ol className="flex flex-col gap-1.5">
           {report.events.map((e) => (
             <li key={e.event_id} className="flex gap-3 text-sm">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StatusBadge } from '../../components/ui';
 import { SECTORS, SEVERITY, VIEW_H, VIEW_W, VIEW_X0, ago, type Focus, type SectorId, type Severity, type ShipReport } from '../../lib/ship';
 
@@ -273,10 +273,12 @@ export function ShipMap({
   onFocus: (f: Focus | null) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
-  const [compact, setCompact] = useState(false);
-  useEffect(() => {
+  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+  // Measure before paint so phones never flash the full pin layout.
+  useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
+    setCompact(el.getBoundingClientRect().width < 560);
     const ro = new ResizeObserver(([e]) => setCompact(e.contentRect.width < 560));
     ro.observe(el);
     return () => ro.disconnect();
@@ -358,7 +360,7 @@ export function ShipMap({
           : false;
         const label = p.report
           ? `${p.report.form?.equipment ?? 'Voice report'} — ${SEVERITY[p.severity].label}`
-          : `${p.count} reports in ${SECTORS.find((s) => s.id === p.sector)?.label}`;
+          : `${p.count} report${p.count === 1 ? '' : 's'} in ${SECTORS.find((s) => s.id === p.sector)?.label}`;
         return (
           <button
             key={p.key}

@@ -1,4 +1,4 @@
-# Mózg statku — kontekst projektu dla Claude Code
+# GlaukOS (Mózg statku) — kontekst projektu dla Claude Code
 
 > Hackathon Kongsberg Maritime × Wydział Informatyki, 7 godzin. Ten plik opisuje cały projekt, ale szczegółowo tylko moją część: **aplikację PWA (frontend)**. Backend, mowa, LLM i synchronizację robią inne osoby; poniższe kontrakty są wspólne i nie zmieniamy ich bez uzgodnienia z zespołem.
 >
@@ -196,7 +196,7 @@ Zasady:
 
 ### 7.5 PWA
 
-- `vite-plugin-pwa`, `registerType: 'autoUpdate'`, manifest `name: 'Mózg statku'`, `short_name: 'Ship Brain'`, `display: 'standalone'`, ciemne `theme_color`, ikony 192 i 512.
+- `vite-plugin-pwa`, `registerType: 'autoUpdate'`, manifest `name: 'GlaukOS'`, `short_name: 'GlaukOS'`, `display: 'standalone'`, ciemne `theme_color`, ikony 192 i 512.
 - Workbox cache'uje app shell. **Nie** cache'ujemy odpowiedzi API (stan jest w IndexedDB i MQTT).
 - **HTTPS jest wymagany** dla mikrofonu i service workera poza `localhost` (mkcert, patrz README).
 - Offline testujemy na buildzie: `npm run build && npm run preview`.

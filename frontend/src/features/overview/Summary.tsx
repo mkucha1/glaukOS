@@ -76,8 +76,7 @@ export function Summary({ all, onFocus, part }: { all: ShipReport[]; onFocus: (f
       <Card className="flex flex-col gap-5 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <Eyebrow>Current register</Eyebrow>
-            <div className="mt-2 flex items-baseline gap-1">
+            <div className="flex items-baseline gap-1">
               <span className="text-5xl font-semibold tracking-tight tabular-nums sm:text-6xl">{m.correct}</span>
               <span className="text-2xl font-medium text-cream/40 tabular-nums sm:text-3xl">/{m.total}</span>
             </div>
@@ -139,8 +138,7 @@ export function Summary({ all, onFocus, part }: { all: ShipReport[]; onFocus: (f
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]" aria-label="Summary">
       <Card className="flex flex-col gap-3 sm:p-6">
         <div className="flex items-baseline justify-between">
-          <Eyebrow>By sector</Eyebrow>
-          <span className="text-xs text-cream/45">tap to focus</span>
+          <h2 className="text-[15px] font-semibold">By compartment</h2>
         </div>
         <ul className="flex flex-col gap-1">
           {sectors.map(({ s, total, action, open, progress, resolved }) => (
