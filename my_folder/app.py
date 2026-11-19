@@ -46,9 +46,9 @@ LLM_MAX_ATTEMPTS = int(os.getenv("LLM_MAX_ATTEMPTS", "2"))  # ponowienie przy b�
 LLM_REASONING_EFFORT = os.getenv("LLM_REASONING_EFFORT", "none")
 LLM_MOCK = os.getenv("LLM_MOCK", "0").lower() in ("1", "true", "yes")
 
-# Język tekstu w `tresc`: "auto" = język mówiącego (jak streszczenia wzorcowe w projekcie decyzyjnym),
-# albo wymuszony kod ISO, np. "en" lub "pl".
-SUMMARY_LANGUAGE = os.getenv("SUMMARY_LANGUAGE", "auto").strip().lower()
+# Język oficjalnego tekstu w `tresc`. Domyślnie "en": wypowiedź w dowolnym języku jest tłumaczona na formalny
+# angielski. "auto" = język mówiącego; inny kod ISO (np. "pl") = wymuś ten język.
+SUMMARY_LANGUAGE = os.getenv("SUMMARY_LANGUAGE", "en").strip().lower()
 SHIP_NAME = os.getenv("SHIP_NAME", "").strip() or None  # domyślne `statek`, jeśli STT go nie poda
 
 # Opcjonalnie: automatyczne przekazanie zgłoszenia do modelu decyzyjnego (POST JSON).
@@ -439,9 +439,13 @@ def call_llm(stt: STTInput) -> tuple[dict, int]:
     # język wyniku: wymuszony z konfiguracji, albo język mówiącego podany przez STT/aplikację
     target_lang = SUMMARY_LANGUAGE if SUMMARY_LANGUAGE != "auto" else (stt.language or "").lower()[:2] or None
     if target_lang:
-        target = f"Write `tresc` in this language: {target_lang} (translate if needed)."
+        target = (f"Write `tresc` in formal, official language suitable for a ship's report, in this language: "
+                  f"{target_lang}. Translate from the speaker's language if it is different.")
     else:
         target = "Write `tresc` in the same language as the speaker."
+    # Kontrola słownictwa porównuje słowa z nagrania - ma sens tylko bez tłumaczenia (np. "zęza" -> "bilge" jest OK)
+    src_lang = (stt.language or guess_language(stt.text) or "")[:2].lower()
+    check_terms = not target_lang or src_lang == target_lang
     user_msg = (f"{target}\nLanguage hint from STT: {lang_hint}\n"
                 f'Speech:\n"""{normalize_numbers(stt.text)}"""')
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_msg}]
@@ -449,7 +453,7 @@ def call_llm(stt: STTInput) -> tuple[dict, int]:
 
     # Kontrola słownictwa: mały model myli podobne słowa ("zęzowa" -> "zębowa"/"bilgowa") i podmienia
     # pomieszczenia ("maszynownia" -> "siłownia"). To zmienia sens zgłoszenia, więc dajemy jedną poprawkę.
-    problems = term_problems(stt.text, out["tresc"]) if not out["niejednoznaczne"] else []
+    problems = term_problems(stt.text, out["tresc"], check_terms) if not out["niejednoznaczne"] else []
     got_lang = guess_language(out["tresc"])
     if target_lang in ("pl", "en") and got_lang and got_lang != target_lang and not out["niejednoznaczne"]:
         problems.append(f"`tresc` must be written in '{target_lang}', not '{got_lang}'.")
@@ -463,7 +467,7 @@ def call_llm(stt: STTInput) -> tuple[dict, int]:
         fixed, more = chat_json(fix_msgs)
         attempts += more
         def count(o: dict) -> int:
-            n = len(term_problems(stt.text, o["tresc"]))
+            n = len(term_problems(stt.text, o["tresc"], check_terms))
             g = guess_language(o["tresc"])
             return n + (1 if target_lang in ("pl", "en") and g and g != target_lang else 0)
         if not fixed["niejednoznaczne"] and count(fixed) < count(out):
@@ -510,14 +514,15 @@ FALSE_FRIENDS = [("bilg", "zęz", "write 'zęza'/'zęzowy' (Polish), never 'bilg
                  ("zęb", "zęz", "the speaker said 'zęzowy' (bilge), not 'zębowy' (gear)")]
 
 
-def term_problems(raw: str, tresc: str) -> list[str]:
-    """Kluczowe słowa z nagrania, których brakuje w `tresc`, i kalki, których w nagraniu nie było (tylko PL)."""
+def term_problems(raw: str, tresc: str, check_terms: bool = True) -> list[str]:
+    """Kluczowe słowa z nagrania, których brakuje w `tresc`, i kalki, których w nagraniu nie było (tylko PL),
+    oraz wymyślone numery urządzeń. check_terms=False (tłumaczenie) -> tylko kontrola numerów."""
     r, t = raw.lower(), tresc.lower()
     problems = []
-    for wrong, right_stem, hint in FALSE_FRIENDS:
+    for wrong, right_stem, hint in FALSE_FRIENDS if check_terms else []:
         if wrong in t and wrong not in r and right_stem in r:
             problems.append(f"Do not use '{wrong}...': {hint}.")
-    for stem, word in KEY_TERMS:
+    for stem, word in KEY_TERMS if check_terms else []:
         if re.search(rf"\b{stem}", r) and not re.search(rf"\b{stem}", t):
             problems.append(f"The speaker said '{word}' - keep this word, do not replace it.")
     # numer urządzenia ("nr 10", "No. 3"), którego w nagraniu nie było = wymyślony
@@ -601,7 +606,8 @@ def process(stt: STTInput) -> Zgloszenie:
         out, attempts = call_llm(stt)
         model = LLM_MODEL
 
-    lang = _norm_lang(out["jezyk"], stt.language)
+    # `jezyk` = język mówiącego (metadana nagrania), nie język `tresc` - przy tłumaczeniu model podaje tu "en"
+    lang = _norm_lang(stt.language or guess_language(stt.text) or out["jezyk"], None)
     tresc = out["tresc"]
     if out["niejednoznaczne"]:
         text_lang = lang if SUMMARY_LANGUAGE == "auto" else SUMMARY_LANGUAGE

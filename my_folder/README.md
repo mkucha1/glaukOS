@@ -11,7 +11,11 @@ Dział, pilność, raport do DPA i osobę ustala model decyzyjny. Tutaj tylko:
 - usuwamy wypełniacze, powtórzenia i autokorekty („dwójka, znaczy dwa lewy” → „2 lewy”),
 - zamieniamy liczby mówione na cyfry („trzysta osiemdziesiąt wolt” → „380 V”),
 - zostawiamy **te same informacje co w nagraniu** jako 1–3 proste zdania: zwykły tekst bez list i formatowania,
-  łatwy do przeczytania i do odczytu przez TTS.
+  łatwy do przeczytania i do odczytu przez TTS,
+- wypowiedź w **dowolnym języku** tłumaczymy na **formalny, oficjalny angielski** (zmienna `SUMMARY_LANGUAGE`).
+  Pole `jezyk` zostaje językiem mówiącego. Bierzemy je z wejścia (`jezyk` / `language` z STT). Gdy STT go nie poda,
+  rozpoznajemy polski i angielski; inne języki ocenia model i może wtedy błędnie wpisać `en`. Warto więc,
+  żeby STT przekazywało wykryty język (np. Whisper go zwraca).
 
 Ten tekst trafia do pola `tresc`, które jako **jedyne** czyta model decyzyjny.
 
@@ -58,7 +62,7 @@ Oba skrypty mogą też wysyłać zapytania do działającego serwera: `--url htt
 | `LLM_BASE_URL` | `http://localhost:11434/v1` | serwer zgodny z OpenAI API (Ollama, llama.cpp, vLLM, LM Studio) |
 | `LLM_MODEL` | `qwen3.5:4b` | nazwa modelu |
 | `LLM_REASONING_EFFORT` | `none` | wyłącza „thinking” (≈1 s zamiast ≈30 s). Pusty = nie wysyłaj parametru |
-| `SUMMARY_LANGUAGE` | `auto` | `auto` = język mówiącego (jak `streszczenie_wzorcowe` w projekcie decyzyjnym); `en` / `pl` = wymuś |
+| `SUMMARY_LANGUAGE` | `en` | język oficjalnego tekstu w `tresc`; `en` = zawsze formalny angielski, `auto` = język mówiącego, `pl` = polski |
 | `SHIP_NAME` | – | `statek` w zgłoszeniu, jeśli STT go nie poda |
 | `DECISION_URL` | – | jeśli ustawione, każde zgłoszenie jest też wysyłane POST-em do modelu decyzyjnego |
 | `LLM_MOCK` | `0` | `1` = bez LLM, proste czyszczenie (testy integracji) |
@@ -93,7 +97,7 @@ Najprostszy STT może wysłać sam tekst: `POST /parse/text`, `Content-Type: tex
   "urzadzenie": "telefon",
   "jezyk": "pl",
   "nagranie_s": 15.8,
-  "tresc": "Pompa chłodzenia nr 2: pod spodem powstała kałuża. Wytarto podłogę i podstawiono tackę. Uszczelnienie wymaga sprawdzenia, ponieważ przeciek nasila się.",
+  "tresc": "Cooling pump No. 2 is leaking again; a puddle has formed underneath. The leak was wiped up and a drip tray placed. The seal must be inspected as the situation is worsening.",
   "tresc_surowa": "kurde znowu kapie z tej pompy chłodzenia, numer dwa, pod spodem kałuża, wytarłem i podstawiłem tackę, ale ktoś musi zobaczyć uszczelnienie bo się robi coraz gorzej",
   "niejednoznaczne": false,
   "porzadkowanie": {"wersja": "2.0", "model": "qwen3.5:4b", "czas_ms": 1085, "proby": 1, "stt_pewnosc": null}
@@ -103,7 +107,8 @@ Najprostszy STT może wysłać sam tekst: `POST /parse/text`, `Content-Type: tex
 - Pola do `tresc` włącznie mają dokładnie ten format, co zgłoszenia w `github/backend/decision`.
 - `tresc_surowa`, `niejednoznaczne` i `porzadkowanie` dodaje ta warstwa. Model decyzyjny ich nie czyta, a jego loader je ignoruje.
 - `niejednoznaczne: true` oznacza, że wypowiedź nie ma konkretnej treści („yyy nic, wszystko dobrze”). Wtedy
-  `tresc` = „Brak konkretnej treści — dopytać zgłaszającego…”, jak w streszczeniach wzorcowych.
+  `tresc` = „No specific content — ask the reporter what the report is about.” (przy `SUMMARY_LANGUAGE=pl`:
+  „Brak konkretnej treści — dopytać zgłaszającego…”, jak w streszczeniach wzorcowych).
 - Pełny JSON Schema: `GET /schema`. Błędy: `422` złe wejście, `502` LLM zwrócił zły JSON, `503` LLM nieosiągalny.
 
 Przykłady: **`przyklady_dla_modelu_decyzyjnego.txt`** zawiera 73 zgłoszenia w tym formacie (tablica JSON):
@@ -113,15 +118,16 @@ Sprawdzone kodem projektu decyzyjnego: `shipdec.contract.decide()` i `shipdec.ev
 ## Kontrole jakości w kodzie (po odpowiedzi LLM)
 
 Mały model (4B) czasem zmienia sens. Gdy kod wykryje któryś z tych błędów, model dostaje jedną poprawkę z opisem błędu:
-- zgubione kluczowe słowo z nagrania (zęza, balast, kingston, maszynownia, trap, chief, kapitan…)
-  albo kalka, której nie było w nagraniu („bilgowy”, „zębowy” zamiast „zęzowy”),
 - numer urządzenia („nr 10”), którego nikt nie wypowiedział,
-- tekst w innym języku niż `jezyk` z STT/metadanych,
-- konkretna wypowiedź oznaczona jako „niejednoznaczne”.
+- tekst w innym języku niż docelowy (`SUMMARY_LANGUAGE`),
+- konkretna wypowiedź oznaczona jako „niejednoznaczne”,
+- tylko gdy wynik jest w języku mówiącego (bez tłumaczenia): zgubione kluczowe słowo z nagrania
+  (zęza, balast, kingston, maszynownia, trap, chief, kapitan…) albo kalka („bilgowy”, „zębowy” zamiast „zęzowy”).
 
-Na 63 wypowiedziach z projektu decyzyjnego: 0 naruszeń kontraktu, 0 błędów języka, 0 wymyślonych numerów,
-56 z 62 liczb ze streszczeń wzorcowych obecnych w `tresc`. Znane słabości modelu 4B: miejscami kulawa
-polszczyzna i pojedyncze pomyłki trybu („wymieniono” zamiast „do wymiany”). Większy model przez `LLM_MODEL` to poprawi.
+Na 63 wypowiedziach z projektu decyzyjnego (wynik po angielsku): 0 naruszeń kontraktu, 63/63 po angielsku,
+0 wymyślonych numerów, 58 z 62 liczb ze streszczeń wzorcowych obecnych w `tresc`. Znane słabości modelu 4B:
+pojedyncze błędy tłumaczenia terminów (np. „światło topowe” → „top deck lamp” zamiast „masthead light”)
+i mylenie ilości z numerem („dwie beczki oleju do sprężarki” → „compressor No. 2”). Większy model przez `LLM_MODEL` to poprawi.
 
 ## Pozostałe pliki
 
