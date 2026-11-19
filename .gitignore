@@ -1,0 +1,18 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# secrets and local config
+.env
+.env.local
+*.pem
+certs/
+
+# dependencies and builds
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
