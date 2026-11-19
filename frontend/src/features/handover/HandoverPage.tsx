@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { Btn, Card, Eyebrow, cx, timeOf } from '../../components/ui';
 import { api } from '../../lib/api';
 import { speak, speechSupported, stopSpeaking } from '../../lib/speech';
-import type { HandoverResponse } from '../../types';
+import type { Briefing } from '../../lib/handover';
 
 const WATCHES = ['00-04', '04-08', '08-12', '12-16', '16-20', '20-24'];
 const currentWatch = () => WATCHES[Math.floor(new Date().getHours() / 4)];
 
 export function HandoverPage() {
   const [watch, setWatch] = useState(currentWatch);
-  const [data, setData] = useState<HandoverResponse | null>(null);
+  const [data, setData] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export function HandoverPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Btn onClick={generate} disabled={loading} className="min-h-14 flex-1 text-base">
-          {loading ? 'Reading the register…' : data ? 'Regenerate briefing' : 'Generate briefing'}
+          {loading ? 'Writing the briefing…' : data ? 'Regenerate briefing' : 'Generate briefing'}
         </Btn>
         {data && speechSupported && (
           <Btn variant={speaking ? 'danger' : 'secondary'} onClick={read} className="min-h-14 flex-1 text-base">
@@ -80,6 +80,7 @@ export function HandoverPage() {
         <Card className="enter sm:p-7" key={data.generated_at}>
           <Eyebrow className="mb-4">
             Watch {watch} · generated {timeOf(data.generated_at)}
+            {data.source && (data.source === 'register' ? ' · from the register' : ` · written by ${data.source}`)}
           </Eyebrow>
           <p className="whitespace-pre-line text-lg leading-relaxed text-cream/90 sm:text-xl">{data.text}</p>
         </Card>

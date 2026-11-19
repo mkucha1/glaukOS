@@ -4,7 +4,7 @@ import { config, nowIso, uuid } from '../config';
 import type { ApiClient, AudioUpload } from './api';
 import type { CrewMember } from './crew';
 import { HttpError } from './errors';
-import { localHandover } from './handover';
+import { localHandover, watchWindow, type Briefing } from './handover';
 import { actorOf, type Profile } from './profile';
 import { ensureSession, requireSupabase } from './supabase';
 import type { ApproveRequest, HandoverResponse, ShipEvent, SyncStatus } from '../types';
@@ -145,7 +145,33 @@ export class SupabaseApiClient implements ApiClient {
         /* fall through to the local briefing */
       }
     }
+    try {
+      const written = await this.workerBriefing(watch);
+      if (written) return written;
+    } catch {
+      /* fall through to the local briefing */
+    }
     return localHandover(watch);
+  }
+
+  /** Briefing written by the ship worker's LLM (qwen), if the worker is alive. See supabase/migrations/*briefings.sql. */
+  private async workerBriefing(watch: string): Promise<Briefing | null> {
+    const sb = requireSupabase();
+    await ensureSession();
+    const { data: ws, error } = await sb.from('worker_status').select('last_seen').eq('id', 1).maybeSingle();
+    if (error || !ws?.last_seen || Date.now() - new Date(ws.last_seen).getTime() > 90_000) return null;
+    const id = uuid();
+    const [window_from, window_to] = watchWindow(watch);
+    const { error: insertError } = await sb.from('briefings').insert({ id, watch, window_from, window_to, lang: 'en' });
+    if (insertError) return null;
+    for (const deadline = Date.now() + 90_000; Date.now() < deadline; ) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const { data } = await sb.from('briefings').select('status,text,model,generated_at').eq('id', id).maybeSingle();
+      if (data?.status === 'done' && data.text)
+        return { text: data.text, generated_at: data.generated_at ?? nowIso(), source: data.model ?? 'llm' };
+      if (data?.status === 'failed') return null;
+    }
+    return null;
   }
 
   async syncStatus(): Promise<SyncStatus> {
