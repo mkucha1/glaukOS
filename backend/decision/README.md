@@ -238,3 +238,19 @@ ollama pull qwen3.5:4b
 Ręcznie: `shipdec clean --data-dir data/realistic --llm-dir ../../../moj-llm/my_folder`, potem
 `shipdec evaluate` na obu folderach i `shipdec compare results/A.jsonl results/B.jsonl`
 (trafność każdej decyzji, ile zgłoszeń przechodzi automatycznie, przykłady zmian).
+
+## Potok głosowy: nagranie → STT → qwen → Basal (gałąź `voice-pipeline`)
+
+Łączy trzy części, każdą z jej gałęzi, bez kopiowania kodu (foldery obok siebie w `~/Documents/mari`):
+`stt/` (gałąź `stt`, `stt/app/pipeline.py`: ffmpeg → DeepFilterNet → faster-whisper), `moj-llm/`
+(porządkowanie qwen) i ta gałąź (Basal). Na Macu STT działa na CPU (int8), bo nie ma CUDA — kod STT
+jest ten sam, zmieniają się tylko ustawienia. Basal ocenia tekst z STT i tekst po qwenie.
+
+```bash
+cd ~/Documents/mari && git clone -b stt https://github.com/mkucha1/glaukOS.git stt
+brew install ffmpeg                                   # jeśli nie ma
+cd glaukOS/backend/decision
+ENV_DIR=../../../.venv-mlx ./scripts/voice_pipeline_mac.sh     # nagrania z ~/Documents/mari/data
+```
+
+Wynik: `results/voice/raport.md` (tekst na każdym etapie, decyzje, pewności, czasy).

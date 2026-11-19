@@ -1,4 +1,4 @@
-"""Polecenia:  shipdec generate | realistic | evaluate | clean | compare | push | queue | export-server-config"""
+"""Polecenia:  shipdec generate | realistic | evaluate | clean | compare | voice | push | queue | export-server-config"""
 from __future__ import annotations
 
 import argparse
@@ -69,6 +69,14 @@ def main(argv: list[str] | None = None) -> None:
     m.add_argument("--md", default=None, help="zapisz porównanie zgłoszenie po zgłoszeniu (markdown) do pliku")
     m.add_argument("--clean-dir", default=None, help="folder oczyszczonego zbioru (oznacza 'niejednoznaczne')")
 
+    v = sub.add_parser("voice", help="potok głosowy: tekst z STT (stt_batch.py) -> qwen -> Basal")
+    v.add_argument("--stt", default=str(ROOT / "results" / "voice" / "stt.jsonl"), help="wynik scripts/stt_batch.py")
+    v.add_argument("--out-dir", default=str(ROOT / "results" / "voice"))
+    v.add_argument("--llm-dir", default=str(ROOT.parents[2] / "moj-llm" / "my_folder"))
+    v.add_argument("--no-qwen", action="store_true", help="bez porządkowania (Basal tylko na tekście z STT)")
+    v.add_argument("--backend", choices=["basal", "mock"], default="basal")
+    v.add_argument("--url", default=None)
+
     k = sub.add_parser("queue", help="pokaż kolejkę wysyłki dla wyników ewaluacji")
     k.add_argument("--results", default=str(ROOT / "results" / "results.jsonl"))
     k.add_argument("-n", type=int, default=15)
@@ -109,6 +117,11 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd == "sample":
         from .clean import build_sample
         print(f"próbka {build_sample(a.data_dir, a.out_dir, a.list)} zgłoszeń -> {a.out_dir}")
+        return
+    if a.cmd == "voice":
+        from .voice import run_voice
+        run_voice(a.stt, a.out_dir, get_backend(a.backend, a.url), None if a.no_qwen else a.llm_dir)
+        print(f"raport -> {Path(a.out_dir) / 'raport.md'}")
         return
     if a.cmd == "queue":
         rows = order(read_jsonl(a.results))
