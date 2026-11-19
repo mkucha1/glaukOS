@@ -60,7 +60,10 @@ class FakePipeline(Pipeline):
         self.questions, self.thresholds = load_questions()
 
     def stt(self, audio, filename):
-        return self.transcripts[audio]
+        t = self.transcripts[audio]
+        if isinstance(t, Exception):
+            raise t
+        return t
 
     def clean(self, text):
         unclear = text.strip().lower().startswith("yyy nic")
@@ -214,3 +217,27 @@ def test_worker_keeps_handling_reports_without_briefing_tables():
     w = Worker(sb, FakePipeline({b"A1": "pompa dwa cieknie"}), datetime.now(timezone.utc) - timedelta(minutes=5))
     w.tick()
     assert not w.briefings_on and "report.structured" in _types(sb, "r9")
+
+
+def test_unreadable_recording_asks_again_and_worker_goes_on():
+    from shipdec.worker import AudioUnusable
+    sb = _setup()
+    _record(sb, "bad", b"X")
+    _record(sb, "ok", b"A1")
+    w = Worker(sb, FakePipeline({b"X": AudioUnusable("STT 422: Invalid data"), b"A1": "pompa dwa cieknie"}),
+               datetime.now(timezone.utc) - timedelta(minutes=5))
+    w.tick()
+    assert _types(sb, "bad") == ["report.recorded", "report.clarification_requested"]
+    assert "report.structured" in _types(sb, "ok")                      # kolejne zgłoszenie obsłużone
+
+
+def test_unexpected_error_is_retried_then_skipped():
+    sb = _setup()
+    _record(sb, "boom", b"B")
+    _record(sb, "ok", b"A1")
+    w = Worker(sb, FakePipeline({b"B": ValueError("coś dziwnego"), b"A1": "pompa dwa cieknie"}),
+               datetime.now(timezone.utc) - timedelta(minutes=5))
+    for _ in range(4):
+        w.tick()                                                         # nie rzuca wyjątku
+    assert "report.structured" in _types(sb, "ok")
+    assert w.failures["boom"] == 3 and "boom" in w.done

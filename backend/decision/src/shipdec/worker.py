@@ -34,6 +34,14 @@ from .ship import SECTOR_LABELS
 from .supa import Supabase, SupabaseError
 
 RECORDED, ANSWERED = "report.recorded", "report.clarification_answered"
+UNREADABLE = "The recording could not be read. Please record the report again."
+MAX_ATTEMPTS = 3          # po tylu nieudanych próbach zdarzenie jest pomijane (worker się nie zatrzymuje)
+
+
+class AudioUnusable(Exception):
+    """STT odrzucił plik (422/413: nieczytelny, pusty, za krótki/za długi) — ponowna próba nic nie da."""
+
+
 ASK_AGAIN = {
     "pl": "Nie zrozumiałem nagrania. Powiedz jeszcze raz: co, gdzie i co się dzieje?",
     "en": "I could not understand the recording. Please say again: what, where and what is wrong?",
@@ -63,6 +71,8 @@ class Pipeline:
         import httpx
         r = httpx.post(f"{self.stt_url}/transcribe", files={"file": (filename, audio, "application/octet-stream")},
                        timeout=300.0)
+        if r.status_code in (413, 422):
+            raise AudioUnusable(f"STT {r.status_code}: {r.text[:200]}")
         r.raise_for_status()
         return r.json()["text"]
 
@@ -118,6 +128,7 @@ class Worker:
     def __init__(self, sb: Supabase, pipe: Pipeline, since: datetime, poll_s: float = 2.0, briefing_llm=None):
         self.sb, self.pipe, self.since, self.poll_s = sb, pipe, since, poll_s
         self.done: set[str] = set()
+        self.failures: dict[str, int] = {}
         self.briefings_on = True          # wyłącza się, gdy w bazie nie ma tabel z migracji briefings
         self.last_beat = 0.0
         from .briefing import ask_qwen
@@ -178,7 +189,12 @@ class Worker:
             log(f"  {rid[:8]} bez audio_path — pomijam")
             return
         log(f"nowe zgłoszenie {rid[:8]} od {ev['actor']}")
-        text = self.transcribe(rid, path)
+        try:
+            text = self.transcribe(rid, path)
+        except AudioUnusable as e:
+            log(f"  {rid[:8]} nieczytelne nagranie ({e}) -> prośba o ponowne nagranie")
+            self.emit(rid, "report.clarification_requested", "system:whisper", {"question": UNREADABLE})
+            return
         if not text.strip():
             self.emit(rid, "report.clarification_requested", "system:whisper", {"question": ASK_AGAIN["en"]})
             return
@@ -191,7 +207,13 @@ class Worker:
         if self.has_event(rid, "report.clarified", **{"payload->>answer_event_id": f"eq.{eid}"}):
             return
         p = ev.get("payload") or {}
-        answer = p.get("answer") or (self.transcribe(rid, p["audio_path"]) if p.get("audio_path") else "")
+        try:
+            answer = p.get("answer") or (self.transcribe(rid, p["audio_path"]) if p.get("audio_path") else "")
+        except AudioUnusable as e:
+            log(f"  {rid[:8]} nieczytelna odpowiedź ({e}) -> prośba o ponowne nagranie")
+            self.emit(rid, "report.clarified", "system:basal", {"answer": "", "answer_event_id": eid})
+            self.emit(rid, "report.clarification_requested", "system:whisper", {"question": UNREADABLE})
+            return
         log(f"odpowiedź na pytanie {rid[:8]}: {answer!r}")
         self.emit(rid, "report.clarified", "system:basal", {"answer": answer, "answer_event_id": eid})
         texts = [e["payload"].get("text", "") for e in self.report_events(rid) if e["type"] == "report.transcribed"]
@@ -253,8 +275,14 @@ class Worker:
                 (self.on_recorded if ev["type"] == RECORDED else self.on_answered)(ev)
                 self.done.add(ev["event_id"])
                 n += 1
-            except (SupabaseError, OSError, RuntimeError) as e:
-                log(f"  błąd przy {ev['report_id'][:8]}: {e!r} — spróbuję ponownie")
+            except Exception as e:  # noqa: BLE001 — jedno zgłoszenie nie może zatrzymać workera
+                k = ev["event_id"]
+                self.failures[k] = self.failures.get(k, 0) + 1
+                if self.failures[k] >= MAX_ATTEMPTS:
+                    self.done.add(k)
+                    log(f"  błąd przy {ev['report_id'][:8]}: {e!r} — pomijam po {MAX_ATTEMPTS} próbach")
+                else:
+                    log(f"  błąd przy {ev['report_id'][:8]}: {e!r} — spróbuję ponownie")
         return n
 
     def run(self) -> None:
@@ -262,8 +290,8 @@ class Worker:
         while True:
             try:
                 self.tick()
-            except (SupabaseError, OSError) as e:
-                log(f"Supabase niedostępny: {e!r}")
+            except Exception as e:  # noqa: BLE001 — np. chwilowy brak sieci: czekamy i próbujemy dalej
+                log(f"błąd pętli (spróbuję za chwilę): {e!r}")
             time.sleep(self.poll_s)
 
 
