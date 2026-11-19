@@ -1,0 +1,31 @@
+services:
+  stt:
+    build: .
+    init: true
+    ports:
+      - "127.0.0.1:${STT_PORT:-8001}:8000"
+    environment:
+      MODEL_PATH: /models/whisper-${WHISPER_MODEL:-large-v3}
+      MODEL_NAME: ${WHISPER_MODEL:-large-v3}
+      DEVICE: cuda
+      COMPUTE_TYPE: ${COMPUTE_TYPE:-float16}
+      DENOISE: ${DENOISE:-true}
+      DF_MODEL_PATH: /models/DeepFilterNet3_onnx.tar.gz
+      HF_HUB_OFFLINE: "1"
+      MAX_AUDIO_SECONDS: "120"
+      MAX_UPLOAD_MB: "25"
+    volumes:
+      - ${STT_MODELS_DIR:-./models}:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s

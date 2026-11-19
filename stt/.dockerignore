@@ -1,0 +1,6 @@
+*
+!requirements.txt
+!entrypoint.sh
+!download_models.py
+!app/
+!app/*.py

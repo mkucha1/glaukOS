@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+models/
+samples/
+results/
+__pycache__/
+*.pyc
+.venv/
+*.wav
+*.mp3
+*.webm
+*.m4a
+*.mp4
+*.ogg
+*.flac

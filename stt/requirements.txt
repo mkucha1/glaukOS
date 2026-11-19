@@ -1,0 +1,11 @@
+fastapi==0.115.12
+uvicorn==0.34.2
+python-multipart==0.0.20
+faster-whisper==1.2.1
+# PyAV 19 removed metadata_errors, still used by faster-whisper 1.2.1.
+av==18.1.0
+ctranslate2==4.6.0
+huggingface-hub==0.36.0
+numpy==2.2.6
+nvidia-cublas-cu12==12.4.5.8
+nvidia-cudnn-cu12==9.1.0.70
