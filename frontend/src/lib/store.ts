@@ -36,6 +36,16 @@ export function ingest(input: unknown | unknown[], opts: { persist?: boolean } =
   if (opts.persist !== false) db.events.bulkPut(added).catch(console.error);
 }
 
+export const getEvents = () => snapshot;
+
+/** Switching user on a shared device: forget everything the previous person could see. */
+export async function clearEvents() {
+  byId.clear();
+  snapshot = [];
+  listeners.forEach((l) => l());
+  await db.events.clear();
+}
+
 export async function loadCachedEvents() {
   ingest(await db.events.toArray(), { persist: false });
 }
@@ -67,6 +77,8 @@ export interface ReportView {
   aiForm?: ReportForm;
   approver?: string;
   approved_at?: string;
+  /** reporter's station when recording (report.recorded payload) */
+  station?: string;
   closed_at?: string;
 }
 
@@ -87,6 +99,7 @@ export function buildReport(report_id: string, events: ShipEvent[]): ReportView 
   for (const e of events) {
     switch (e.type) {
       case 'report.recorded':
+        v.station = (e.payload as { station?: string } | null)?.station;
         v.status = 'recorded';
         break;
       case 'report.transcribed':
@@ -96,14 +109,14 @@ export function buildReport(report_id: string, events: ShipEvent[]): ReportView 
       case 'report.structured': {
         v.form = e.payload as ReportForm;
         v.aiForm = v.form;
-        if (!DONE.includes(v.status))
-          v.status = v.form.missing_fields?.length ? 'structured' : 'pending_approval';
+        if (!DONE.includes(v.status)) v.status = v.form.missing_fields?.length ? 'structured' : 'pending_approval';
         break;
       }
       case 'report.clarification_requested':
         lastQuestion = { ...(e.payload as ClarificationRequestedPayload), event_id: e.event_id };
         if (!DONE.includes(v.status)) v.status = 'needs_clarification';
         break;
+      case 'report.clarification_answered': // crew answered; backend is processing it
       case 'report.clarified':
         if (!DONE.includes(v.status)) v.status = 'clarified';
         break;
@@ -152,9 +165,7 @@ export function buildReports(events: ShipEvent[]): ReportView[] {
     if (g) g.push(e);
     else groups.set(e.report_id, [e]);
   }
-  return [...groups.entries()]
-    .map(([id, evts]) => buildReport(id, evts))
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  return [...groups.entries()].map(([id, evts]) => buildReport(id, evts)).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 }
 
 export function useReports(): ReportView[] {
@@ -162,10 +173,4 @@ export function useReports(): ReportView[] {
   return useMemo(() => buildReports(events), [events]);
 }
 
-export const AWAITING: ReportStatus[] = [
-  'transcribed',
-  'structured',
-  'needs_clarification',
-  'clarified',
-  'pending_approval',
-];
+export const AWAITING: ReportStatus[] = ['transcribed', 'structured', 'needs_clarification', 'clarified', 'pending_approval'];

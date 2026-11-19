@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, Eyebrow, cx } from '../../components/ui';
 import { db } from '../../lib/db';
+import { useCrew } from '../../lib/crew';
 import { useLiveQuery, useSyncStatus } from '../../lib/hooks';
 import { APPROVED, SECTORS, SEVERITY, metrics, type Focus, type Severity, type ShipReport } from '../../lib/ship';
 
@@ -50,6 +51,7 @@ export function Summary({ all, onFocus, part }: { all: ShipReport[]; onFocus: (f
   const m = metrics(all);
   const outbox = useLiveQuery(() => db.outbox.where('status').anyOf('pending', 'sending', 'failed').count(), [], 0);
   const { status: sync } = useSyncStatus(3000);
+  const crew = useCrew();
 
   const approved = all.filter((r) => APPROVED.includes(r.status));
   const segments: { key: string; n: number; color: string; label: string; focus?: Focus }[] = [
@@ -224,9 +226,9 @@ export function Summary({ all, onFocus, part }: { all: ShipReport[]; onFocus: (f
           }
         />
         <Tile
-          label="Crew involved"
-          value={new Set(all.flatMap((r) => [r.actor, r.assignee].filter(Boolean))).size}
-          sub="People connected through reports and tasks"
+          label="Crew on duty"
+          value={`${crew.filter((c) => c.on_duty).length}/${crew.length}`}
+          sub={crew.length ? `${crew.filter((c) => !c.on_duty).length} resting right now` : 'Nobody signed in yet'}
         />
       </div>
     </section>

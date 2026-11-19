@@ -19,14 +19,14 @@ export async function enqueue(item: NewOutboxItem) {
 async function send(item: OutboxItem) {
   switch (item.kind) {
     case 'report_audio':
-      await api.uploadReportAudio(item);
+      await api.uploadReportAudio({ ...item, recorded_at: item.created_at });
       return;
     case 'clarify_audio':
-      await api.clarifyAudio(item.target_report_id!, item);
+      await api.clarifyAudio(item.target_report_id!, item.report_id, item);
       return;
     case 'clarify_text': {
       const { answer } = JSON.parse(await item.blob.text()) as { answer: string };
-      await api.clarifyText(item.target_report_id!, answer, item.actor);
+      await api.clarifyText(item.target_report_id!, answer, item.actor, item.report_id);
       return;
     }
   }

@@ -8,18 +8,7 @@ export const VIEW_X0 = -40;
 export const VIEW_W = 1240;
 export const VIEW_H = 460;
 
-export type SectorId =
-  | 'bridge'
-  | 'cabins'
-  | 'galley'
-  | 'purifier'
-  | 'ecr'
-  | 'engine'
-  | 'steering'
-  | 'deck'
-  | 'holds'
-  | 'bow'
-  | 'tanks';
+export type SectorId = 'bridge' | 'cabins' | 'galley' | 'purifier' | 'ecr' | 'engine' | 'steering' | 'deck' | 'holds' | 'bow' | 'tanks';
 
 export interface Sector {
   id: SectorId;
@@ -44,7 +33,13 @@ export const SECTORS: Sector[] = [
     area: [1052, 222, 60, 100],
     labelAt: [1040, 170],
   },
-  { id: 'tanks', label: 'Ballast & tanks', d: 'M152 372H1086C1078 384 1070 392 1060 396H160C156 390 154 380 152 372Z', area: [430, 390, 540, 2], labelAt: [170, 420] },
+  {
+    id: 'tanks',
+    label: 'Ballast & tanks',
+    d: 'M152 372H1086C1078 384 1070 392 1060 396H160C156 390 154 380 152 372Z',
+    area: [430, 390, 540, 2],
+    labelAt: [170, 420],
+  },
   { id: 'steering', label: 'Steering', d: rect(52, 214, 94, 300), area: [62, 250, 20, 40], labelAt: [42, 262] },
   { id: 'purifier', label: 'Purifiers', d: rect(102, 208, 186, 258), area: [120, 236, 50, 8], labelAt: [108, 252] },
   { id: 'ecr', label: 'ECR', d: rect(282, 208, 366, 258), area: [300, 236, 48, 8], labelAt: [288, 252] },
@@ -72,6 +67,8 @@ const RULES: [SectorId, RegExp][] = [
 ];
 
 export function sectorOf(r: ReportView): SectorId {
+  // Before the LLM fills the form, the pin goes where the reporter works.
+  if (!r.form && r.station && SECTORS.some((s) => s.id === r.station)) return r.station as SectorId;
   const text = `${r.form?.location ?? ''} ${r.form?.equipment ?? ''}`.toLowerCase();
   for (const [id, re] of RULES) if (re.test(text)) return id;
   switch (r.form?.sfi_code?.[0]) {
@@ -159,7 +156,7 @@ export interface ShipReport extends ReportView {
 
 export function enrich(reports: ReportView[]): ShipReport[] {
   return reports
-    .filter((r) => r.form || r.transcript)
+    .filter((r) => r.form || r.transcript || r.station)
     .map((r) => ({ ...r, sector: sectorOf(r), severity: severityOf(r), correct: isCorrect(r), corrected: wasCorrected(r) }));
 }
 

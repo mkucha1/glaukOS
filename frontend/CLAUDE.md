@@ -255,3 +255,14 @@ Eskalacja czasowa, ekran mostka, OpenBridge, tarcza odpoczynku i rejestr czasu p
 - Paleta: `#122C4F` (navy, tło), `#FBF9E4` (cream, tekst i główne akcje), `#000000` (ink, studnie/cienie), `#5B88B2` (steel, drugorzędny); tokeny w `src/index.css` (`@theme`). Kolory semantyczne: alert / warn / ok.
 - Ruch wg zasad Emila Kowalskiego: brak animacji przy częstych akcjach (zakładki), `ease-out` z własną krzywą, `scale(0.97)` przy wciśnięciu (`.press`), popover skaluje od przycisku, hover tylko dla `(hover: hover)`, `prefers-reduced-motion` usuwa ruch.
 - W trybie atrap rejestr startuje z historią ~64 zgłoszeń (`src/lib/seed.ts`); „Reset demo data” w menu Demo generuje ją od nowa.
+
+## 14. Supabase (fullstack) — stan po iteracji
+
+- Backend wybiera `VITE_BACKEND`: `mock` (atrapa w przeglądarce), `supabase` (baza + logowanie + nagrania), `http` (FastAPI + MQTT, pierwotny plan).
+- Schemat, rangi i RLS: `../supabase/migrations/`; kontrakt dla backendu mowy: `../supabase/README.md`.
+- Logowanie = imię + stanowisko (`src/lib/positions.ts`, lustro tabeli `positions`) + miejsce pracy (przedział statku). Pod spodem anonimowy użytkownik Supabase i wiersz w `crew`.
+- Uprawnienia: kapitan wszystko; Chief Officer zatwierdza dział pokładowy i kuchnię; Chief Engineer maszynownię; reszta tylko raportuje i widzi swój dział + zadania przydzielone sobie. Baza egzekwuje to RLS-em, UI tylko chowa przyciski (`useVisibleReports`, `canApproveDept`).
+- Nagranie: outbox → Storage `recordings/{uid}/{report_id}.webm` → zdarzenie `report.recorded` z `event_id = report_id` (idempotentne).
+- Nowy typ zdarzenia (propozycja, do potwierdzenia z zespołem): `report.clarification_answered` — odpowiedź załogi (tekst lub audio); backend odpowiada `report.clarified`.
+- Dyżury: `crew.on_duty`, przełącznik „End shift / Start shift” na ekranie Report i w menu konta; na mapie ● pracuje / ○ odpoczywa przy każdym przedziale.
+- Uwaga architektoniczna: Supabase jest w chmurze, więc bez łącza ze światem telefon nadal nagrywa (outbox), ale zatwierdzanie i podgląd innych wymagają internetu. Pierwotny plan offline (serwer pokładowy) pozostaje w trybie `http`.

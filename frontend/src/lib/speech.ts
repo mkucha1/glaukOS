@@ -13,9 +13,7 @@ export function speak(text: string, lang = 'en-US'): Promise<void> {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang;
     u.rate = 0.95;
-    const voice =
-      synth.getVoices().find((v) => v.lang === lang) ??
-      synth.getVoices().find((v) => v.lang.startsWith(lang.slice(0, 2)));
+    const voice = synth.getVoices().find((v) => v.lang === lang) ?? synth.getVoices().find((v) => v.lang.startsWith(lang.slice(0, 2)));
     if (voice) u.voice = voice;
     u.onend = () => resolve();
     u.onerror = () => resolve();

@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StatusBadge } from '../../components/ui';
+import type { CrewMember } from '../../lib/crew';
 import { SECTORS, SEVERITY, VIEW_H, VIEW_W, VIEW_X0, ago, type Focus, type SectorId, type Severity, type ShipReport } from '../../lib/ship';
 
 const LABEL_END = new Set<SectorId>(['bridge', 'cabins', 'galley', 'steering']);
@@ -263,6 +264,7 @@ export function ShipMap({
   highlight,
   thread,
   onFocus,
+  crew = [],
 }: {
   reports: ShipReport[];
   focus: Focus | null;
@@ -271,7 +273,19 @@ export function ShipMap({
   /** ordered ids to connect with arcs */
   thread: { from: string; to: string }[];
   onFocus: (f: Focus | null) => void;
+  /** roster: on-duty / resting counts appear next to each compartment label */
+  crew?: CrewMember[];
 }) {
+  const duty = useMemo(() => {
+    const m = new Map<string, { on: number; off: number }>();
+    for (const c of crew) {
+      const d = m.get(c.station) ?? { on: 0, off: 0 };
+      if (c.on_duty) d.on++;
+      else d.off++;
+      m.set(c.station, d);
+    }
+    return m;
+  }, [crew]);
   const box = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
   // Measure before paint so phones never flash the full pin layout.
@@ -330,6 +344,18 @@ export function ShipMap({
             fillOpacity={focusSector === s.id || sectorAlert.has(s.id) ? 0.95 : 0.5}
           >
             {s.label.toUpperCase()}
+            {duty.get(s.id)?.on ? (
+              <tspan fill="var(--color-ok)" fillOpacity="1">
+                {'  ●'}
+                {duty.get(s.id)!.on}
+              </tspan>
+            ) : null}
+            {duty.get(s.id)?.off ? (
+              <tspan fill="var(--color-cream)" fillOpacity="0.6">
+                {' ○'}
+                {duty.get(s.id)!.off}
+              </tspan>
+            ) : null}
           </text>
         ))}
 

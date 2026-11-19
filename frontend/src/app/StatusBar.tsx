@@ -4,7 +4,10 @@ import { config } from '../config';
 import { db } from '../lib/db';
 import { useBusState, useLiveQuery, useSyncStatus } from '../lib/hooks';
 import { isDeadZone, mockServer, setDeadZone } from '../lib/mock';
-import { roleLabel, useProfile } from '../lib/profile';
+import { crewByActor, useCrew } from '../lib/crew';
+import { isApprover } from '../lib/positions';
+import { actorOf, roleLabel, useProfile } from '../lib/profile';
+import { sectorById } from '../lib/ship';
 import { api } from '../lib/api';
 import { Avatar, Logo, cx } from '../components/ui';
 
@@ -217,6 +220,10 @@ function AccountButton({ variant }: { variant: 'top' | 'tab' }) {
   const { profile, setProfile } = useProfile();
   const navigate = useNavigate();
   const { open, setOpen, ref } = usePopover();
+  const crew = useCrew();
+  const me = profile ? crewByActor(crew, actorOf(profile)) : undefined;
+  const onDuty = me?.on_duty ?? true;
+  const [busy, setBusy] = useState(false);
 
   if (!profile)
     return variant === 'top' ? (
@@ -235,18 +242,24 @@ function AccountButton({ variant }: { variant: 'top' | 'tab' }) {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label={`${profile.name}, ${roleLabel(profile.role)}`}
+        aria-label={`${profile.name}, ${roleLabel(profile.position)}`}
         className={cx(
           'press flex items-center',
           variant === 'top' ? 'gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-cream/5' : 'h-full w-full flex-col justify-center gap-1',
           variant === 'tab' && (open ? 'text-cream' : 'text-cream/60'),
         )}
       >
-        <Avatar actor={`x:${profile.name}`} size={variant === 'top' ? 30 : 26} />
+        <span className="relative">
+          <Avatar actor={`x:${profile.name}`} size={variant === 'top' ? 30 : 26} />
+          <span
+            className={cx('absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-navy', onDuty ? 'bg-ok' : 'bg-cream/40')}
+            title={onDuty ? 'On duty' : 'Resting'}
+          />
+        </span>
         {variant === 'top' ? (
           <span className="text-left text-xs leading-tight">
             <span className="block font-semibold">{profile.name}</span>
-            <span className="text-cream/55">{roleLabel(profile.role)}</span>
+            <span className="text-cream/55">{roleLabel(profile.position)}</span>
           </span>
         ) : (
           <span className="text-[11px] font-medium">{profile.name.split(' ')[0]}</span>
@@ -262,12 +275,32 @@ function AccountButton({ variant }: { variant: 'top' | 'tab' }) {
         >
           <div className="px-3 py-2.5">
             <div className="font-semibold">{profile.name}</div>
-            <div className="text-[13px] text-cream/55">{roleLabel(profile.role)}</div>
+            <div className="text-[13px] text-cream/55">
+              {roleLabel(profile.position)} · {sectorById(profile.station).label}
+            </div>
           </div>
           <button
-            onClick={() => {
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              await api.setOnDuty(!onDuty, profile).catch((e) => alert(`Could not update your shift: ${(e as Error).message}`));
+              setBusy(false);
+            }}
+            className="press flex min-h-14 w-full items-center justify-between rounded-xl px-3 text-left text-sm hover:bg-cream/5"
+          >
+            <span>
+              <span className="block font-medium">{onDuty ? 'End my shift' : 'Start my shift'}</span>
+              <span className="block text-[13px] text-cream/55">
+                {onDuty ? 'You are on duty' : 'You are resting'}
+                {me && ` since ${new Date(me.duty_changed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+              </span>
+            </span>
+            <Toggle on={onDuty} />
+          </button>
+          <button
+            onClick={async () => {
               setOpen(false);
-              setProfile(null);
+              await setProfile(null);
               navigate('/role');
             }}
             className="press flex min-h-14 w-full items-center rounded-xl px-3 text-left text-sm font-medium hover:bg-cream/5"
@@ -282,14 +315,20 @@ function AccountButton({ variant }: { variant: 'top' | 'tab' }) {
 
 // ---------- top bar: full nav on desktop, slim on phones ----------
 
-const TABS: [string, string, () => ReactNode][] = [
-  ['/', 'Ship', ShipIcon],
-  ['/mechanic', 'Report', () => <MicIcon size={22} />],
-  ['/officer', 'Approvals', ApproveIcon],
-  ['/handover', 'Handover', HandoverIcon],
-];
+/** Approvers see an approval queue; everyone else sees their department's reports. */
+const useTeamLabel = () => {
+  const { profile } = useProfile();
+  return isApprover(profile?.position) ? 'Approvals' : 'Department';
+};
 
 export function TopBar() {
+  const team = useTeamLabel();
+  const TABS: [string, string][] = [
+    ['/', 'Ship'],
+    ['/mechanic', 'Report'],
+    ['/officer', team],
+    ['/handover', 'Handover'],
+  ];
   return (
     <header
       className="sticky top-0 z-30 border-b border-cream/10 bg-navy/90 backdrop-blur-xl"
@@ -332,6 +371,7 @@ export function TopBar() {
 
 export function BottomNav() {
   const { pathname } = useLocation();
+  const team = useTeamLabel();
   const tab = (to: string, label: string, icon: ReactNode) => (
     <NavLink
       to={to}
@@ -354,7 +394,7 @@ export function BottomNav() {
     >
       <div className="mx-auto grid h-[68px] max-w-md grid-cols-5 items-stretch px-2">
         {tab('/', 'Ship', <ShipIcon />)}
-        {tab('/officer', 'Approvals', <ApproveIcon />)}
+        {tab('/officer', team, <ApproveIcon />)}
         <div className="relative flex justify-center">
           <NavLink
             to="/mechanic"

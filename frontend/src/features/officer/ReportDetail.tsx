@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Btn, Card, PriorityBadge, StatusBadge, cx, shortActor, timeOf } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useCrew } from '../../lib/crew';
+import { DEPARTMENTS, canApproveDept, departmentOfActor } from '../../lib/positions';
 import { actorOf, useProfile } from '../../lib/profile';
 import { AWAITING, type ReportView } from '../../lib/store';
 import type { ReportForm } from '../../types';
-
-const DEMO_CREW = ['2nd_engineer:mateusz', 'chief_engineer:chief', '3rd_engineer:oiler'];
 
 const FIELDS: { key: keyof ReportForm; label: string; type?: 'number' | 'text' }[] = [
   { key: 'equipment', label: 'Equipment' },
@@ -35,11 +35,20 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
     if (!dirty) setForm(report.form);
   }, [report.form, dirty]);
 
-  const crew = useMemo(
-    () => [...new Set([report.actor, ...knownActors, ...DEMO_CREW])].filter((a) => !a.startsWith('system') && !a.startsWith('officer')),
-    [report.actor, knownActors],
-  );
-  const canDecide = AWAITING.includes(report.status) && !!form;
+  // Assign within the report's department, people on duty first.
+  const roster = useCrew();
+  const dept = departmentOfActor(report.actor);
+  const crew = useMemo(() => {
+    const inDept = roster.filter((c) => departmentOfActor(c.actor) === dept || c.actor === report.actor);
+    const list = inDept.length ? inDept : roster;
+    const sorted = [...list].sort((a, b) => Number(b.on_duty) - Number(a.on_duty) || a.name.localeCompare(b.name));
+    const actors = sorted.map((c) => c.actor);
+    if (!actors.includes(report.actor) && !report.actor.startsWith('system')) actors.unshift(report.actor);
+    return actors.map((a) => ({ actor: a, resting: sorted.find((c) => c.actor === a)?.on_duty === false }));
+  }, [roster, dept, report.actor, knownActors]);
+  const allowed = canApproveDept(profile!.position, dept);
+  const canDecide = AWAITING.includes(report.status) && !!form && allowed;
+  const deptLabel = DEPARTMENTS.find((d) => d.id === dept)?.label.toLowerCase() ?? dept;
   const ready = report.status === 'pending_approval';
 
   const set = <K extends keyof ReportForm>(k: K, v: ReportForm[K]) => {
@@ -161,14 +170,20 @@ export function ReportDetail({ report, onBack, knownActors }: { report: ReportVi
         </Card>
       )}
 
+      {!allowed && AWAITING.includes(report.status) && (
+        <p className="rounded-2xl border border-cream/10 bg-ink/25 px-4 py-3 text-sm text-cream/65">
+          Waiting for a decision. Only the captain or the head of the {deptLabel} department can approve this report.
+        </p>
+      )}
       {canDecide && (
         <Card className="sticky bottom-2 z-10 flex flex-wrap items-end gap-3 border-cream/20 bg-navy-deep/95 backdrop-blur">
           <label className="flex min-w-48 flex-1 flex-col gap-1">
             <span className="text-xs text-cream/60">Assign to</span>
             <select className={input} value={assignee} onChange={(e) => setAssignee(e.target.value)}>
-              {crew.map((a) => (
-                <option key={a} value={a}>
-                  {shortActor(a)}
+              {crew.map((c) => (
+                <option key={c.actor} value={c.actor}>
+                  {shortActor(c.actor)}
+                  {c.resting ? ' — resting' : ''}
                 </option>
               ))}
             </select>

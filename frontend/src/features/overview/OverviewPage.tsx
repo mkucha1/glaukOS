@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, cx } from '../../components/ui';
 import { config } from '../../config';
-import { useEvents, useReports } from '../../lib/store';
+import { useEvents } from '../../lib/store';
+import { useVisibleReports } from '../../lib/visibility';
+import { useCrew } from '../../lib/crew';
+import { useProfile } from '../../lib/profile';
+import { Link } from 'react-router-dom';
 import { SEVERITY, enrich, relatedTo, reportsFor, sameFocus, type Focus, type Severity } from '../../lib/ship';
 import { FocusPanel } from './FocusPanel';
 import { ShipMap } from './ShipMap';
@@ -11,8 +15,10 @@ const FILTERS: Severity[] = ['action', 'open', 'progress', 'resolved'];
 const vesselName = config.shipId.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 export function OverviewPage() {
-  const reports = useReports();
+  const reports = useVisibleReports();
   const events = useEvents();
+  const crew = useCrew();
+  const { profile } = useProfile();
   const all = useMemo(() => enrich(reports), [reports]);
   const [focus, setFocusRaw] = useState<Focus | null>(null);
   const [shown, setShown] = useState<Set<Severity>>(() => new Set(['action', 'open', 'progress']));
@@ -101,12 +107,25 @@ export function OverviewPage() {
         </div>
       </div>
 
+      {!profile && config.backend === 'supabase' && (
+        <Card className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[15px] text-cream/75">Sign in to see the reports of your department.</p>
+          <Link to="/role" className="press rounded-2xl bg-cream px-5 py-3 text-[15px] font-semibold text-navy">
+            Sign in
+          </Link>
+        </Card>
+      )}
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-4">
           <Card className="overflow-visible p-3 sm:p-6">
-            <ShipMap reports={visible} focus={focus} highlight={highlight} thread={thread} onFocus={setFocus} />
+            <ShipMap reports={visible} focus={focus} highlight={highlight} thread={thread} onFocus={setFocus} crew={crew} />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-cream/50">
-              <span>Tap a pin for its connections, or a compartment to see everything reported there.</span>
+              <span>
+                Tap a pin for its connections, or a compartment to see who works there.{' '}
+                <span className="whitespace-nowrap">
+                  <span className="text-ok">●</span> on duty <span className="ml-1">○</span> resting
+                </span>
+              </span>
               {focus && (
                 <button
                   onClick={() => setFocusRaw(null)}

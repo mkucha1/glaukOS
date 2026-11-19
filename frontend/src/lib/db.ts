@@ -13,6 +13,8 @@ export interface OutboxItem {
   // local-only extras (not part of the team contract)
   actor: string;
   device: string;
+  /** reporter's station when recording, so the pin lands in the right compartment before structuring */
+  station?: string;
   next_attempt_at?: number;
   last_error?: string;
 }

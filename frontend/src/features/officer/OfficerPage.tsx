@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, PriorityBadge, StatusBadge, cx, shortActor, timeOf } from '../../components/ui';
-import { AWAITING, useReports, type ReportView } from '../../lib/store';
+import { AWAITING, type ReportView } from '../../lib/store';
+import { useVisibleReports } from '../../lib/visibility';
 import { ReportDetail } from './ReportDetail';
 
 function Row({ r, active, fresh, onClick }: { r: ReportView; active: boolean; fresh: boolean; onClick: () => void }) {
@@ -31,7 +32,7 @@ function Row({ r, active, fresh, onClick }: { r: ReportView; active: boolean; fr
 }
 
 export function OfficerPage() {
-  const reports = useReports();
+  const reports = useVisibleReports();
   const [params] = useSearchParams();
   const [selected, setSelected] = useState<string | null>(params.get('report'));
 

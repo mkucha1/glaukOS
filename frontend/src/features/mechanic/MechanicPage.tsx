@@ -8,9 +8,11 @@ import { enqueue, retryFailed } from '../../lib/outbox';
 import { actorOf, deviceId, useProfile } from '../../lib/profile';
 import type { Recording } from '../../lib/recorder';
 import { speak, speechSupported, toBcp47 } from '../../lib/speech';
-import { useReports, type ReportView } from '../../lib/store';
+import { type ReportView } from '../../lib/store';
+import { useVisibleReports } from '../../lib/visibility';
 import type { ReportStatus } from '../../types';
 import { PushToTalk } from './PushToTalk';
+import { ShiftCard } from './ShiftCard';
 
 interface Row {
   report_id: string;
@@ -25,7 +27,7 @@ interface Row {
 export function MechanicPage() {
   const { profile } = useProfile();
   const me = actorOf(profile!);
-  const reports = useReports();
+  const reports = useVisibleReports();
   const outbox = useLiveQuery(() => db.outbox.orderBy('created_at').reverse().toArray(), [], [] as OutboxItem[]);
   const pendingId = useRef<string | null>(null);
   const [acking, setAcking] = useState<string | null>(null);
@@ -86,6 +88,7 @@ export function MechanicPage() {
       mime: rec.mime,
       actor: me,
       device: deviceId(),
+      station: profile!.station,
     });
   };
 
@@ -100,6 +103,7 @@ export function MechanicPage() {
       mime: 'application/json',
       actor: me,
       device: deviceId(),
+      station: profile!.station,
     });
   };
 
@@ -152,6 +156,8 @@ export function MechanicPage() {
         label={activeQuestion ? 'Hold to answer' : 'Hold to report'}
         accent={activeQuestion ? 'question' : 'report'}
       />
+
+      <ShiftCard />
 
       {tasks.length > 0 && (
         <section className="flex flex-col gap-2">

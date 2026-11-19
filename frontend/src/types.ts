@@ -6,6 +6,7 @@ export type EventType =
   | 'report.transcribed'
   | 'report.structured'
   | 'report.clarification_requested'
+  | 'report.clarification_answered' // proposed: crew answer (text or audio); backend then emits report.clarified
   | 'report.clarified'
   | 'report.sensor_checked'
   | 'report.approved'
@@ -65,6 +66,20 @@ export interface ApprovedPayload {
   assignee: string;
 }
 
+/** report.recorded as written by the app: where the audio is and where the reporter stands. */
+export interface RecordedPayload {
+  audio_path?: string; // Supabase Storage path in bucket "recordings"
+  mime?: string;
+  station?: string;
+}
+
+/** report.clarification_answered: one of answer (button) or audio_path (voice). */
+export interface ClarificationAnsweredPayload {
+  answer?: string;
+  audio_path?: string;
+  mime?: string;
+}
+
 export interface TaskAssignedPayload {
   assignee: string;
   summary: string;
@@ -85,8 +100,6 @@ export type ReportStatus =
   | 'assigned'
   | 'acknowledged'
   | 'closed';
-
-export type Role = '2nd_engineer' | 'chief_engineer' | 'officer';
 
 export interface ApproveRequest {
   decision: 'approve' | 'reject';

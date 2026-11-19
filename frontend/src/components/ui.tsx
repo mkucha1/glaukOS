@@ -21,9 +21,7 @@ const STATUS: Record<ReportStatus, { label: string; cls: string }> = {
 export function StatusBadge({ status }: { status: ReportStatus }) {
   const s = STATUS[status];
   return (
-    <span className={cx('inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-xs font-medium', s.cls)}>
-      {s.label}
-    </span>
+    <span className={cx('inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-xs font-medium', s.cls)}>{s.label}</span>
   );
 }
 
@@ -86,5 +84,15 @@ export function Avatar({ actor, size = 28 }: { actor?: string; size?: number }) 
 }
 
 export function Logo({ size = 28 }: { size?: number }) {
-  return <img src="/logo.png" width={size} height={size} alt="" aria-hidden className="shrink-0 object-contain" style={{ width: size, height: size }} />;
+  return (
+    <img
+      src="/logo.png"
+      width={size}
+      height={size}
+      alt=""
+      aria-hidden
+      className="shrink-0 object-contain"
+      style={{ width: size, height: size }}
+    />
+  );
 }

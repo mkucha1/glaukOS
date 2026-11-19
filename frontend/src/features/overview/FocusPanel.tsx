@@ -17,6 +17,8 @@ import {
   type ShipReport,
 } from '../../lib/ship';
 import { MindMap, type MindNode, type Tone } from './MindMap';
+import { useCrew } from '../../lib/crew';
+import { positionLabel } from '../../lib/positions';
 
 const TONE: Record<Severity, Tone> = { action: 'alert', open: 'warn', progress: 'steel', resolved: 'ok', rejected: 'muted' };
 const LANG: Record<string, string> = { pl: 'Polish', tl: 'Tagalog', en: 'English', uk: 'Ukrainian', ru: 'Russian', fil: 'Filipino' };
@@ -192,6 +194,9 @@ function GroupFocus({
       break;
   }
   const shown = list.slice(0, 8);
+  const roster = useCrew();
+  const here = focus.kind === 'sector' ? roster.filter((c) => c.station === focus.id) : [];
+  const at = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const nodes = shown.map((r) => reportNode(r, `${focus.kind === 'sector' ? '' : `${sectorById(r.sector).label} · `}${rel(r)}`, onFocus));
 
   return (
@@ -213,6 +218,36 @@ function GroupFocus({
         </div>
         <CloseBtn onClick={() => onFocus(null)} />
       </div>
+      {focus.kind === 'sector' && (
+        <div>
+          <Eyebrow className="mb-2">Crew here</Eyebrow>
+          {here.length === 0 ? (
+            <p className="text-sm text-cream/50">Nobody is stationed here.</p>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {[...here]
+                .sort((a, b) => Number(b.on_duty) - Number(a.on_duty))
+                .map((c) => (
+                  <li key={c.id}>
+                    <button
+                      onClick={() => onFocus({ kind: 'person', actor: c.actor })}
+                      className="press flex min-h-12 w-full items-center gap-3 rounded-2xl border border-cream/10 bg-ink/20 px-3 text-left hover:border-cream/25"
+                    >
+                      <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', c.on_duty ? 'bg-ok' : 'bg-cream/35')} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">{c.name}</span>
+                        <span className="block truncate text-xs text-cream/55">{positionLabel(c.position)}</span>
+                      </span>
+                      <span className={cx('shrink-0 text-xs', c.on_duty ? 'text-ok' : 'text-cream/50')}>
+                        {c.on_duty ? 'On duty' : 'Resting'} since {at(c.duty_changed_at)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      )}
       {nodes.length ? (
         <div>
           <Eyebrow className="mb-3">Connected reports</Eyebrow>

@@ -2,15 +2,10 @@
 // Events are shared between tabs via BroadcastChannel + localStorage, so a "mechanic" tab
 // and an "officer" tab on one laptop see the same register.
 import { nowIso, uuid } from '../config';
-import { seedEvents } from './seed';
-import type {
-  ApproveRequest,
-  EventType,
-  HandoverResponse,
-  ReportForm,
-  ShipEvent,
-  SyncStatus,
-} from '../types';
+import { removeCrew, upsertCrew, type CrewMember } from './crew';
+import { actorOf, type Profile } from './profile';
+import { seedCrew, seedEvents } from './seed';
+import type { ApproveRequest, EventType, HandoverResponse, ReportForm, ShipEvent, SyncStatus } from '../types';
 
 const LOG_KEY = 'shipbrain.mock.events';
 const SYNC_KEY = 'shipbrain.mock.sync';
@@ -39,6 +34,23 @@ function write(key: string, value: unknown) {
 }
 
 const SEEDED_KEY = 'shipbrain.mock.seeded';
+const CREW_KEY = 'shipbrain.mock.crew';
+const crewChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('ship-brain-mock-crew') : null;
+crewChannel?.addEventListener('message', (m) => upsertCrew(m.data as CrewMember));
+
+function readCrew(): CrewMember[] {
+  const list = read<CrewMember[] | null>(CREW_KEY, null);
+  if (list) return list;
+  const seeded = seedCrew();
+  write(CREW_KEY, seeded);
+  return seeded;
+}
+
+function saveCrewMember(c: CrewMember) {
+  write(CREW_KEY, [...readCrew().filter((x) => x.id !== c.id), c]);
+  upsertCrew(c);
+  crewChannel?.postMessage(c);
+}
 
 /** First run (or after reset): fill the register with realistic history so the overview has a story. */
 function readLog(): ShipEvent[] {
@@ -106,16 +118,30 @@ const purifierForm: ReportForm = {
 };
 
 function runPipeline(report_id: string, actor: string) {
-  const n = new Set(readLog().filter((e) => e.type === 'report.recorded' && e.device !== 'seed').map((e) => e.report_id)).size;
+  const n = new Set(
+    readLog()
+      .filter((e) => e.type === 'report.recorded' && e.device !== 'seed')
+      .map((e) => e.report_id),
+  ).size;
   emit('report.recorded', report_id, {}, actor);
   if (n % 2 === 0) {
-    later(1000, () => emit('report.transcribed', report_id, { text: 'Pompa chłodzenia, ciśnienie spada do 1,8 bara, przeciek na uszczelnieniu.', lang: 'pl' }));
+    later(1000, () =>
+      emit('report.transcribed', report_id, {
+        text: 'Pompa chłodzenia, ciśnienie spada do 1,8 bara, przeciek na uszczelnieniu.',
+        lang: 'pl',
+      }),
+    );
     later(1700, () => emit('report.structured', report_id, pumpForm()));
     later(2300, () =>
       emit('report.clarification_requested', report_id, { question: 'Pompa numer jeden czy numer dwa?', options: ['No. 1', 'No. 2'] }),
     );
   } else {
-    later(1000, () => emit('report.transcribed', report_id, { text: 'Wirówka paliwa numer jeden, duże wibracje i hałas na bębnie. Przełączyłem na wirówkę numer dwa.', lang: 'pl' }));
+    later(1000, () =>
+      emit('report.transcribed', report_id, {
+        text: 'Wirówka paliwa numer jeden, duże wibracje i hałas na bębnie. Przełączyłem na wirówkę numer dwa.',
+        lang: 'pl',
+      }),
+    );
     later(1700, () => emit('report.structured', report_id, purifierForm));
     later(2200, () => emit('report.sensor_checked', report_id, { tag: 'PUR1_VIB', sensor_value: 11.4, unit: 'mm/s', matches: true }));
   }
@@ -125,9 +151,7 @@ function clarify(report_id: string, answer: string) {
   const no: 1 | 2 = /1|one|jed/i.test(answer) && !/2|two|dwa/i.test(answer) ? 1 : 2;
   emit('report.clarified', report_id, { answer });
   later(700, () => emit('report.structured', report_id, pumpForm(no)));
-  later(1300, () =>
-    emit('report.sensor_checked', report_id, { tag: `CWP${no}_PT`, sensor_value: 1.9, unit: 'bar', matches: true }),
-  );
+  later(1300, () => emit('report.sensor_checked', report_id, { tag: `CWP${no}_PT`, sensor_value: 1.9, unit: 'bar', matches: true }));
 }
 
 // ---------- public surface used by MockApiClient / MockEventBus ----------
@@ -165,7 +189,12 @@ export const mockServer = {
     const assignee = req.assignee ?? '2nd_engineer:mateusz';
     emit('report.approved', report_id, { form, assignee }, actor);
     later(400, () =>
-      emit('task.assigned', report_id, { assignee, summary: `${form.equipment}: ${form.defect ?? form.text_en}`, priority: form.priority }, actor),
+      emit(
+        'task.assigned',
+        report_id,
+        { assignee, summary: `${form.equipment}: ${form.defect ?? form.text_en}`, priority: form.priority },
+        actor,
+      ),
     );
   },
 
@@ -210,8 +239,40 @@ export const mockServer = {
     }, 250);
   },
 
+  async crew() {
+    return readCrew();
+  },
+
+  async signIn(p: Profile) {
+    const actor = actorOf(p);
+    const prev = readCrew().find((c) => c.actor === actor);
+    // A fresh sign-in replaces any seeded person with the same actor.
+    if (prev && prev.id !== `local:${actor}`) removeCrew(prev.id);
+    write(
+      CREW_KEY,
+      readCrew().filter((c) => c.actor !== actor),
+    );
+    saveCrewMember({
+      id: `local:${actor}`,
+      name: p.name,
+      position: p.position,
+      actor,
+      station: p.station,
+      on_duty: true,
+      duty_changed_at: nowIso(),
+    });
+  },
+
+  async setOnDuty(on: boolean, p: Profile) {
+    const actor = actorOf(p);
+    const me = readCrew().find((c) => c.actor === actor);
+    if (!me) return;
+    saveCrewMember({ ...me, on_duty: on, duty_changed_at: nowIso() });
+  },
+
   reset() {
     write(LOG_KEY, []);
+    write(CREW_KEY, null);
     write(SEEDED_KEY, false);
     write(SYNC_KEY, { link_up: true, queued: 0 });
   },

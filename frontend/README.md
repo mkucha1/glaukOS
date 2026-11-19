@@ -7,7 +7,7 @@ Project context and team contracts: [CLAUDE.md](CLAUDE.md).
 
 ```bash
 npm install
-cp .env.example .env.local   # VITE_MOCK=1 works without any backend
+cp .env.example .env.local   # VITE_BACKEND=mock works without any backend
 npm run dev                  # http://localhost:5173
 ```
 
@@ -28,7 +28,12 @@ browser share the mock register, so you can open `/mechanic` and `/officer` side
 - **Cut satellite link** (officer screen): the shore queue counter grows; restoring it drains to 0.
 - **Reset demo** (officer screen): clears mock events and the local cache.
 
-## Real backend
+## Supabase backend
+
+Set `VITE_BACKEND=supabase`, `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env.local`.
+Schema, ranks and the speech-to-text contract: [`../supabase/README.md`](../supabase/README.md).
+
+## FastAPI backend (original onboard plan)
 
 `.env.local`:
 

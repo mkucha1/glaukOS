@@ -4,7 +4,8 @@ import { api } from '../lib/api';
 import { bus } from '../lib/mqtt';
 import { startOutbox } from '../lib/outbox';
 import { loadProfile, ProfileContext, saveProfile, useProfile, type Profile } from '../lib/profile';
-import { ingest, loadCachedEvents } from '../lib/store';
+import { setCrew } from '../lib/crew';
+import { clearEvents, ingest, loadCachedEvents } from '../lib/store';
 import { BottomNav, TopBar } from './StatusBar';
 import { RolePage } from '../features/role/RolePage';
 import { OverviewPage } from '../features/overview/OverviewPage';
@@ -20,15 +21,28 @@ function useBootstrap(profile: Profile | null) {
   }, []);
 
   useEffect(() => {
-    const catchUp = () =>
+    let alive = true;
+    const catchUp = () => {
       api
         .loadEvents()
         .then((e) => ingest(e))
         .catch(() => {});
+      api
+        .loadCrew()
+        .then((c) => alive && setCrew(c))
+        .catch(() => {});
+    };
     const offEvent = bus.onEvent((e) => ingest(e));
-    const offState = bus.onState((s) => s === 'connected' && void catchUp());
-    bus.start(profile);
+    const offState = bus.onState((s) => s === 'connected' && catchUp());
+    // Supabase: make sure this device has a session and a crew row before listening.
+    const ready = profile ? api.signIn(profile).catch((e) => console.warn('[sign-in]', e)) : Promise.resolve();
+    void ready.then(() => {
+      if (!alive) return;
+      bus.start(profile);
+      catchUp();
+    });
     return () => {
+      alive = false;
       offEvent();
       offState();
       bus.stop();
@@ -76,7 +90,13 @@ function Guard({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const [profile, setProfileState] = useState<Profile | null>(loadProfile);
-  const setProfile = useCallback((p: Profile | null) => {
+  const setProfile = useCallback(async (p: Profile | null) => {
+    if (p) {
+      await api.signIn(p); // throws if the server refuses; the sign-in screen shows it
+    } else {
+      await api.signOut().catch(() => {});
+      await clearEvents(); // a shared phone must not show the previous person's department
+    }
     saveProfile(p);
     setProfileState(p);
   }, []);

@@ -1,16 +1,15 @@
-// ApiClient: real HTTP or the in-browser mock, chosen by VITE_MOCK.
+// ApiClient: in-browser mock, Supabase, or the FastAPI HTTP server, chosen by VITE_BACKEND.
 // If the backend answers differently than section 6.5, adapt it here, not in types.ts.
 import { config } from '../config';
+import type { CrewMember } from './crew';
 import { mockServer } from './mock';
+import type { Profile } from './profile';
+import { SupabaseApiClient } from './supabaseApi';
 import type { ApproveRequest, HandoverResponse, ShipEvent, SyncStatus } from '../types';
 
-export class HttpError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
+import { HttpError } from './errors';
+
+export { HttpError };
 
 export interface AudioUpload {
   report_id: string;
@@ -18,13 +17,17 @@ export interface AudioUpload {
   device: string;
   blob: Blob;
   mime: string;
+  /** when the recording was made (it may be sent much later) */
+  recorded_at?: string;
+  station?: string;
 }
 
 export interface ApiClient {
   /** Idempotent per report_id. Resolves 'duplicate' on 409. */
   uploadReportAudio(u: AudioUpload): Promise<'ok' | 'duplicate'>;
-  clarifyAudio(reportId: string, u: Omit<AudioUpload, 'report_id'>): Promise<void>;
-  clarifyText(reportId: string, answer: string, actor: string): Promise<void>;
+  /** `id` is the outbox key; re-sending the same id never duplicates the answer. */
+  clarifyAudio(reportId: string, id: string, u: Omit<AudioUpload, 'report_id'>): Promise<void>;
+  clarifyText(reportId: string, answer: string, actor: string, id: string): Promise<void>;
   approve(reportId: string, req: ApproveRequest, actor: string): Promise<void>;
   ackTask(taskId: string, actor: string): Promise<void>;
   /** Everything the server knows, as raw events, for catch-up after (re)connect. */
@@ -32,9 +35,14 @@ export interface ApiClient {
   handover(watch?: string): Promise<HandoverResponse>;
   syncStatus(): Promise<SyncStatus>;
   setLink(up: boolean): Promise<void>;
+  /** Create or refresh this person's crew record (Supabase: anonymous user + crew row). */
+  signIn(p: Profile): Promise<void>;
+  signOut(): Promise<void>;
+  setOnDuty(on: boolean, p: Profile): Promise<void>;
+  loadCrew(): Promise<CrewMember[]>;
 }
 
-const extFor = (mime: string) => (mime.includes('mp4') || mime.includes('aac') ? 'm4a' : 'webm');
+export const extFor = (mime: string) => (mime.includes('mp4') || mime.includes('aac') ? 'm4a' : 'webm');
 
 async function request(path: string, init: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
   const ctrl = new AbortController();
@@ -65,7 +73,7 @@ class HttpApiClient implements ApiClient {
     return res.status === 409 ? 'duplicate' : 'ok';
   }
 
-  async clarifyAudio(reportId: string, u: Omit<AudioUpload, 'report_id'>) {
+  async clarifyAudio(reportId: string, _id: string, u: Omit<AudioUpload, 'report_id'>) {
     const fd = new FormData();
     fd.append('actor', u.actor);
     fd.append('device', u.device);
@@ -103,6 +111,13 @@ class HttpApiClient implements ApiClient {
     return chunks.flat();
   }
 
+  async signIn() {}
+  async signOut() {}
+  async setOnDuty() {}
+  async loadCrew() {
+    return [];
+  }
+
   async handover(watch?: string) {
     const q = watch ? `?watch=${encodeURIComponent(watch)}` : '';
     return (await (await request(`/api/handover${q}`, {}, 120000)).json()) as HandoverResponse;
@@ -136,6 +151,16 @@ class MockApiClient implements ApiClient {
   async loadEvents() {
     return mockServer.events();
   }
+  signIn(p: Profile) {
+    return mockServer.signIn(p);
+  }
+  async signOut() {}
+  setOnDuty(on: boolean, p: Profile) {
+    return mockServer.setOnDuty(on, p);
+  }
+  loadCrew() {
+    return mockServer.crew();
+  }
   handover(watch?: string) {
     return mockServer.handover(watch);
   }
@@ -147,4 +172,5 @@ class MockApiClient implements ApiClient {
   }
 }
 
-export const api: ApiClient = config.mock ? new MockApiClient() : new HttpApiClient();
+export const api: ApiClient =
+  config.backend === 'mock' ? new MockApiClient() : config.backend === 'supabase' ? new SupabaseApiClient() : new HttpApiClient();

@@ -1,6 +1,9 @@
-// EventBus: MQTT.js over WebSocket, or the in-browser mock.
+// EventBus: MQTT.js over WebSocket, Supabase Realtime, or the in-browser mock.
 import mqtt, { type MqttClient } from 'mqtt';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { config } from '../config';
+import { removeCrew, upsertCrew, type CrewMember } from './crew';
+import { supabase } from './supabase';
 import { isDeadZone, mockServer } from './mock';
 import { actorOf, deviceId, type Profile } from './profile';
 import type { ShipEvent } from '../types';
@@ -48,7 +51,7 @@ abstract class BaseBus implements EventBus {
 
 /** Without a profile (overview kiosk) only the ship-wide stream is needed. */
 export const topicsFor = (p: Profile | null) =>
-  p ? [`ship/${config.shipId}/events`, `person/${actorOf(p)}`, `role/${p.role}/approve`] : [`ship/${config.shipId}/events`];
+  p ? [`ship/${config.shipId}/events`, `person/${actorOf(p)}`, `role/${p.position}/approve`] : [`ship/${config.shipId}/events`];
 
 class MqttBus extends BaseBus {
   private client: MqttClient | null = null;
@@ -114,4 +117,33 @@ class MockBus extends BaseBus {
   }
 }
 
-export const bus: EventBus = config.mock ? new MockBus() : new MqttBus();
+/** Supabase Realtime: inserts into public.events (filtered by RLS) and crew duty changes. */
+class SupabaseBus extends BaseBus {
+  private channel: RealtimeChannel | null = null;
+
+  start(profile: Profile | null) {
+    this.stop();
+    if (!supabase || !profile) return; // RLS shows nothing without a signed-in crew member
+    this.setState('connecting');
+    this.channel = supabase
+      .channel('glaukos-register')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, (p) => this.dispatch(p.new as ShipEvent))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'crew' }, (p) => {
+        if (p.eventType === 'DELETE') removeCrew((p.old as { id: string }).id);
+        else upsertCrew(p.new as CrewMember);
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') this.setState('connected');
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') this.setState('connecting');
+        else if (status === 'CLOSED') this.setState('offline');
+      });
+  }
+
+  stop() {
+    if (this.channel) void supabase?.removeChannel(this.channel);
+    this.channel = null;
+    this.setState('offline');
+  }
+}
+
+export const bus: EventBus = config.backend === 'mock' ? new MockBus() : config.backend === 'supabase' ? new SupabaseBus() : new MqttBus();

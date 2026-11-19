@@ -1,28 +1,30 @@
 import { createContext, useContext } from 'react';
 import { uuid } from '../config';
-import type { Role } from '../types';
+import { positionById, positionLabel, type PositionId } from './positions';
+import type { SectorId } from './ship';
 
+/** The "login": a name, a position on board and the station you work at. */
 export interface Profile {
   name: string;
-  role: Role;
+  position: PositionId;
+  station: SectorId;
 }
 
 const PROFILE_KEY = 'shipbrain.profile';
 const DEVICE_KEY = 'shipbrain.device';
 
-export const ROLES: { id: Role; label: string; home: string }[] = [
-  { id: '2nd_engineer', label: '2nd Engineer', home: '/mechanic' },
-  { id: 'chief_engineer', label: 'Chief Engineer', home: '/mechanic' },
-  { id: 'officer', label: 'Officer', home: '/officer' },
-];
-
-export const homeFor = (role: Role) => ROLES.find((r) => r.id === role)?.home ?? '/';
-export const roleLabel = (role: string) => ROLES.find((r) => r.id === role)?.label ?? role;
+export const homeFor = (p: Pick<Profile, 'position'>) => ((positionById(p.position)?.approves.length ?? 0) > 0 ? '/officer' : '/mechanic');
+export const roleLabel = (position: string) => positionLabel(position);
 
 export function loadProfile(): Profile | null {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
-    return raw ? (JSON.parse(raw) as Profile) : null;
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Partial<Profile> & { role?: string };
+    // Profiles from before positions existed.
+    if (!p.position && p.role) p.position = (p.role === 'officer' ? 'chief_officer' : p.role) as PositionId;
+    if (!p.name || !positionById(p.position)) return null;
+    return { name: p.name, position: p.position!, station: p.station ?? positionById(p.position)!.station };
   } catch {
     return null;
   }
@@ -37,18 +39,18 @@ export function saveProfile(p: Profile | null) {
   }
 }
 
-const slug = (s: string) =>
+export const slug = (s: string) =>
   s
     .trim()
     .toLowerCase()
+    .replace(/ł/g, 'l')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
-    .replace(/ł/g, 'l')
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_|_$/g, '') || 'crew';
 
-/** "2nd_engineer:mateusz". Also used as crewId in `person/{crewId}` (to confirm with backend). */
-export const actorOf = (p: Profile) => `${p.role}:${slug(p.name)}`;
+/** "2nd_engineer:mateusz". Also the crewId in `person/{crewId}` and the assignee in tasks. */
+export const actorOf = (p: Pick<Profile, 'name' | 'position'>) => `${p.position}:${slug(p.name)}`;
 
 /** Stable per device; used as MQTT clientId so the persistent session survives reconnects. */
 export function deviceId(): string {
@@ -66,7 +68,7 @@ export function deviceId(): string {
 
 export const ProfileContext = createContext<{
   profile: Profile | null;
-  setProfile: (p: Profile | null) => void;
-}>({ profile: null, setProfile: () => {} });
+  setProfile: (p: Profile | null) => Promise<void>;
+}>({ profile: null, setProfile: async () => {} });
 
 export const useProfile = () => useContext(ProfileContext);
