@@ -1,0 +1,50 @@
+# Caddy — jedna brama HTTPS dla telefonów: strona PWA, API, SSE i MQTT-over-WebSocket
+# pod JEDNYM adresem i JEDNYM certyfikatem (telefon akceptuje/ufa raz).
+{
+	admin off
+	auto_https disable_redirects
+	default_sni {$SERVER_IP:127.0.0.1}
+}
+
+# HTTP: pobranie certyfikatu CA na telefon + przekierowanie na HTTPS
+http:// {
+	handle /ca.crt {
+		root * /certs
+		rewrite * /rootCA.pem
+		header Content-Type application/x-x509-ca-cert
+		header Content-Disposition "attachment; filename=mozg-statku-ca.crt"
+		file_server
+	}
+	handle {
+		redir https://{host}{uri} 302
+	}
+}
+
+https://{$SERVER_IP:127.0.0.1}, https://localhost {
+	tls /certs/server.pem /certs/server-key.pem
+
+	# API + SSE (flush_interval -1 => zdarzenia SSE lecą natychmiast)
+	handle /api/* {
+		request_body {
+			max_size 30MB
+		}
+		reverse_proxy {$API_UPSTREAM:api:8000} {
+			flush_interval -1
+		}
+	}
+
+	# MQTT.js: new mqtt.connect("wss://<SERVER_IP>/mqtt")
+	handle /mqtt* {
+		reverse_proxy {$MQTT_WS_UPSTREAM:mosquitto:9001}
+	}
+
+	# wasza aplikacja: zbudowane pliki (npm run build -> pwa-dist/) ...
+	handle {
+		root * /srv/pwa
+		encode gzip
+		try_files {path} /index.html
+		file_server
+	}
+	# ... albo w trakcie developmentu zamień blok wyżej na:
+	# handle { reverse_proxy host.docker.internal:5173 }
+}

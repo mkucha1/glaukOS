@@ -1,0 +1,6 @@
+# Zależności modułów AI — dopiszcie swoje. Instalowane, gdy INSTALL_AI=1 (docker compose build).
+# Mateusz:
+# faster-whisper==1.*
+# deepfilternet
+# Maciej / Daniel (klient Ollamy przez HTTP — wystarczy urllib albo):
+# ollama

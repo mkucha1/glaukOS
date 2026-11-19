@@ -1,0 +1,46 @@
+{
+  "_note": "Tabela demo. Kody SFI i tagi czujników są ILUSTRACYJNE — Maciej weryfikuje/podmienia. Tagi muszą zgadzać się z symulatorem czujników.",
+  "groups": {
+    "cw_pump": {
+      "name_en": "Cooling water pump",
+      "aliases": ["pompa chłodzenia", "pompa chłodząca", "pompa wody chłodzącej", "pompy chłodzenia", "cooling water pump", "cooling pump", "cw pump"],
+      "ask": {"pl": "Pompa numer jeden czy numer dwa?", "en": "Pump number one or number two?"}
+    },
+    "me_lo": {
+      "name_en": "Main engine lube oil system",
+      "aliases": ["olej smarny", "smarowanie silnika głównego", "lube oil", "lubricating oil"],
+      "ask": {"pl": "Który punkt pomiaru oleju?", "en": "Which lube oil measuring point?"}
+    },
+    "fo_purifier": {
+      "name_en": "Fuel oil purifier",
+      "aliases": ["wirówka paliwa", "separator paliwa", "fuel purifier", "fuel oil purifier"],
+      "ask": {"pl": "Która wirówka?", "en": "Which purifier?"}
+    },
+    "aux_engine": {
+      "name_en": "Auxiliary engine",
+      "aliases": ["agregat", "silnik pomocniczy", "generator", "auxiliary engine", "aux engine"],
+      "ask": {"pl": "Agregat numer jeden czy numer dwa?", "en": "Auxiliary engine number one or number two?"}
+    }
+  },
+  "equipment": [
+    {"id": "cw_pump_1", "group": "cw_pump", "no": 1, "name": "Cooling water pump No. 1", "sfi_code": "721",
+     "location": "engine room, lower platform",
+     "sensors": {"discharge pressure": {"tag": "CW_PUMP_1_P", "unit": "bar", "tolerance": 0.3}}},
+    {"id": "cw_pump_2", "group": "cw_pump", "no": 2, "name": "Cooling water pump No. 2", "sfi_code": "721",
+     "location": "engine room, lower platform",
+     "sensors": {"discharge pressure": {"tag": "CW_PUMP_2_P", "unit": "bar", "tolerance": 0.3}}},
+    {"id": "me_lo", "group": "me_lo", "no": 1, "name": "Main engine lube oil inlet", "sfi_code": "601",
+     "location": "engine room, main engine",
+     "sensors": {"inlet pressure": {"tag": "ME_LO_P", "unit": "bar", "tolerance": 0.3},
+                 "inlet temperature": {"tag": "ME_LO_T", "unit": "°C", "tolerance": 3}}},
+    {"id": "fo_purifier_1", "group": "fo_purifier", "no": 1, "name": "Fuel oil purifier No. 1", "sfi_code": "633",
+     "location": "purifier room",
+     "sensors": {"inlet temperature": {"tag": "FO_PUR_1_T", "unit": "°C", "tolerance": 3}}},
+    {"id": "aux_engine_1", "group": "aux_engine", "no": 1, "name": "Auxiliary engine No. 1", "sfi_code": "651",
+     "location": "engine room, generator flat",
+     "sensors": {"exhaust temperature": {"tag": "AE1_EXH_T", "unit": "°C", "tolerance": 15}}},
+    {"id": "aux_engine_2", "group": "aux_engine", "no": 2, "name": "Auxiliary engine No. 2", "sfi_code": "651",
+     "location": "engine room, generator flat",
+     "sensors": {"exhaust temperature": {"tag": "AE2_EXH_T", "unit": "°C", "tolerance": 15}}}
+  ]
+}

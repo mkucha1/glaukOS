@@ -1,0 +1,8 @@
+[
+  {"crew_id": "marek", "name": "Marek",  "role": "motorman",       "dept": "engine", "lang": "pl"},
+  {"crew_id": "jose",  "name": "José",   "role": "oiler",          "dept": "engine", "lang": "en"},
+  {"crew_id": "tom",   "name": "Tom",    "role": "2nd_engineer",   "dept": "engine", "lang": "en"},
+  {"crew_id": "anna",  "name": "Anna",   "role": "chief_engineer", "dept": "engine", "lang": "pl"},
+  {"crew_id": "ivan",  "name": "Ivan",   "role": "chief_officer",  "dept": "deck",   "lang": "en"},
+  {"crew_id": "kapitan", "name": "Captain", "role": "master",      "dept": "bridge", "lang": "pl"}
+]

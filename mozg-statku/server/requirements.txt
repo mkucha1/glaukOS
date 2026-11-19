@@ -1,0 +1,6 @@
+# Rdzeń serwera (wersje przetestowane)
+starlette==1.7.0
+uvicorn==0.54.0
+pydantic==2.13.5
+python-multipart==0.0.32
+paho-mqtt>=2.1,<3

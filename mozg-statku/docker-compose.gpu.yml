@@ -1,0 +1,19 @@
+# Laptop z kartą NVIDIA (Linux/WSL2 + nvidia-container-toolkit):
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile llm up -d --build
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+  api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

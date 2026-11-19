@@ -1,0 +1,84 @@
+# Mózg statku — cały serwer pokładowy jednym poleceniem:   ./start.sh   (albo: docker compose up -d --build)
+name: mozg-statku
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports: ["1883:1883", "9001:9001"]
+    volumes:
+      - ./infra/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+
+  api:
+    build:
+      context: ./server
+      args:
+        INSTALL_AI: ${INSTALL_AI:-0}
+    restart: unless-stopped
+    ports: ["8000:8000"]
+    environment:
+      SHIP_ID: ${SHIP_ID:-demo}
+      MQTT_HOST: mosquitto
+      SHORE_URL: http://shore:9000
+      SHORE_TOKEN: ${SHORE_TOKEN:-demo-token}
+      SAT_KBPS: ${SAT_KBPS:-0}
+      USE_STUBS: ${USE_STUBS:-}
+      AUTO_APPROVE_CONFIDENCE: ${AUTO_APPROVE_CONFIDENCE:-0.9}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      RELOAD: ${RELOAD:-0}
+    volumes:
+      - ./data/ship:/data                 # rejestr zdarzeń (events.db) + nagrania audio
+      - ./server/plugins:/app/plugins     # kod zespołu — edycja bez przebudowy obrazu
+      - ./server/config:/app/config
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    depends_on: [mosquitto, shore]
+
+  sensors:   # zaślepka symulatora czujników (Maciej: `docker compose stop sensors` i uruchom swój)
+    build: ./server
+    restart: unless-stopped
+    command: ["python", "-m", "sim.sensors"]
+    environment:
+      SHIP_ID: ${SHIP_ID:-demo}
+      MQTT_HOST: mosquitto
+      API_URL: http://api:8000
+      SCENARIO: ${SENSOR_SCENARIO:-demo}
+    healthcheck: { disable: true }
+    depends_on: [mosquitto]
+
+  shore:     # atrapa armatora na lądzie: http://<IP>:9000
+    build: ./shore
+    restart: unless-stopped
+    ports: ["9000:9000"]
+    environment:
+      SHORE_TOKEN: ${SHORE_TOKEN:-demo-token}
+    volumes:
+      - ./data/shore:/data
+
+  caddy:     # HTTPS dla telefonów: https://<IP>  (mikrofon + service worker wymagają HTTPS)
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      SERVER_IP: ${SERVER_IP:-127.0.0.1}
+      API_UPSTREAM: ${API_UPSTREAM:-api:8000}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - ./pwa-dist:/srv/pwa:ro
+      - caddy-data:/data
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    depends_on: [api, mosquitto]
+
+  ollama:    # opcjonalnie w Dockerze: docker compose --profile llm up -d  (GPU: + -f docker-compose.gpu.yml)
+    image: ollama/ollama
+    profiles: ["llm"]
+    restart: unless-stopped
+    ports: ["11434:11434"]
+    volumes:
+      - ollama:/root/.ollama
+
+volumes:
+  mosquitto-data:
+  caddy-data:
+  ollama:
