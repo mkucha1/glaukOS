@@ -1,4 +1,4 @@
-"""Polecenia:  shipdec generate | shipdec evaluate"""
+"""Polecenia:  shipdec generate | realistic | evaluate | clean | compare | push | queue | export-server-config"""
 from __future__ import annotations
 
 import argparse
@@ -47,6 +47,21 @@ def main(argv: list[str] | None = None) -> None:
     u.add_argument("--data-dir", default=str(DEFAULT_DATA))
     u.add_argument("--limit", type=int, default=None)
 
+    c = sub.add_parser("clean", help="oczyść treść zgłoszeń warstwą LLM z gałęzi moj-llm -> osobny zbiór *_clean")
+    c.add_argument("--data-dir", default=str(ROOT / "data" / "realistic"))
+    c.add_argument("--out-dir", default=None, help="domyślnie <data-dir>_clean")
+    c.add_argument("--llm-dir", default=str(ROOT.parents[2] / "moj-llm" / "my_folder"),
+                   help="folder my_folder z gałęzi moj-llm (przetworz.py)")
+    c.add_argument("--url", default=None, help="zamiast wołać LLM bezpośrednio: działający app.py, np. http://127.0.0.1:8010")
+    c.add_argument("--limit", type=int, default=None)
+    c.add_argument("--od-nowa", action="store_true", help="przetwórz też zgłoszenia, które mają już czystą wersję")
+
+    m = sub.add_parser("compare", help="porównaj dwie ewaluacje (np. surowe vs oczyszczone)")
+    m.add_argument("a", help="wyniki A (results/....jsonl)")
+    m.add_argument("b", help="wyniki B (results/....jsonl)")
+    m.add_argument("--names", nargs=2, default=["surowe", "oczyszczone"])
+    m.add_argument("--przyklady", type=int, default=10, help="ile zgłoszeń ze zmienioną trafnością pokazać")
+
     k = sub.add_parser("queue", help="pokaż kolejkę wysyłki dla wyników ewaluacji")
     k.add_argument("--results", default=str(ROOT / "results" / "results.jsonl"))
     k.add_argument("-n", type=int, default=15)
@@ -66,6 +81,19 @@ def main(argv: list[str] | None = None) -> None:
         reports, labels = build()
         rep_dir = write(reports, labels, a.out_dir)
         print(f"zapisano {len(reports)} wypowiedzi -> {rep_dir}/  (+ labels.jsonl, kompresja.jsonl)")
+        return
+    if a.cmd == "clean":
+        from .clean import clean_dataset
+        out = a.out_dir or f"{a.data_dir.rstrip('/')}_clean"
+        stats = clean_dataset(a.data_dir, out, a.llm_dir, url=a.url, limit=a.limit, skip_done=not a.od_nowa)
+        print(f"oczyszczone -> {out}/reports/  {stats}")
+        return
+    if a.cmd == "compare":
+        from .clean import compare, flips
+        sa, sb = (str(Path(x).with_suffix(".summary.json")) for x in (a.a, a.b))
+        print(compare(sa, sb, *a.names))
+        print()
+        print(flips(a.a, a.b, a.przyklady))
         return
     if a.cmd == "queue":
         rows = order(read_jsonl(a.results))

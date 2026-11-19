@@ -221,3 +221,20 @@ shipdec queue --results results/basal_basal-2.0-4.5B-MLX-8bit.jsonl
 - [ ] Dobór progów: krzywa pokrycie/błąd dla różnych progów
 - [ ] Zestaw testowy od prawdziwych oficerów (zanonimizowany), osobno od syntetycznego
 - [ ] Porównanie z innymi modelami (Jev, Kev, mały LLM) na tym samym zbiorze
+
+## Eksperyment: Basal na surowych vs oczyszczonych wypowiedziach (gałąź `cleaning-eval`)
+
+Warstwa porządkująca tekst jest na gałęzi `moj-llm` (`my_folder/przetworz.py`, Ollama + `qwen3.5:4b`).
+Z tamtej gałęzi bierzemy **tylko kod** — dane są nasze: `shipdec clean` robi kopię naszego zbioru
+z oczyszczoną treścią (`data/<zbiór>_clean`, te same `report_id`, metadane i etykiety; surowa wypowiedź
+w `_meta.cleaning.raw_text`). Do warstwy porządkującej idzie tylko tekst i język.
+
+```bash
+# obok glaukOS:  git clone -b moj-llm https://github.com/mkucha1/glaukOS.git moj-llm
+ollama pull qwen3.5:4b
+./scripts/compare_cleaning_mac.sh          # realistyczne (63) + syntetyczne (SYNTH=100), oba warianty
+```
+
+Ręcznie: `shipdec clean --data-dir data/realistic --llm-dir ../../../moj-llm/my_folder`, potem
+`shipdec evaluate` na obu folderach i `shipdec compare results/A.jsonl results/B.jsonl`
+(trafność każdej decyzji, ile zgłoszeń przechodzi automatycznie, przykłady zmian).
