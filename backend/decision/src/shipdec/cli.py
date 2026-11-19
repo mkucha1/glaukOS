@@ -38,11 +38,29 @@ def main(argv: list[str] | None = None) -> None:
     r = sub.add_parser("realistic", help="zbuduj zbiór z realistycznych wypowiedzi (data/realistic/utterances.yaml)")
     r.add_argument("--out-dir", default=str(ROOT / "data" / "realistic"))
 
+    x = sub.add_parser("export-server-config",
+                       help="zapisz reguły decyzji do mozg-statku/server/config/decision.json (dla pluginu serwera)")
+    x.add_argument("--out", default=None)
+
+    u = sub.add_parser("push", help="wyślij zgłoszenia do serwera pokładowego (POST /api/reports/text)")
+    u.add_argument("--server", default="http://127.0.0.1:8000", help="adres serwera mozg-statku")
+    u.add_argument("--data-dir", default=str(DEFAULT_DATA))
+    u.add_argument("--limit", type=int, default=None)
+
     k = sub.add_parser("queue", help="pokaż kolejkę wysyłki dla wyników ewaluacji")
     k.add_argument("--results", default=str(ROOT / "results" / "results.jsonl"))
     k.add_argument("-n", type=int, default=15)
 
     a = p.parse_args(argv)
+    if a.cmd == "export-server-config":
+        from .contract import SERVER_CONFIG, export_server_config
+        print(f"zapisano -> {export_server_config(a.out or SERVER_CONFIG)}")
+        return
+    if a.cmd == "push":
+        from .server import push_reports
+        reports, _ = load_dataset(a.data_dir)
+        push_reports(reports[:a.limit] if a.limit else reports, a.server)
+        return
     if a.cmd == "realistic":
         from .realistic import build, write
         reports, labels = build()
@@ -51,9 +69,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if a.cmd == "queue":
         rows = order(read_jsonl(a.results))
-        print(f"{'prio':<5}{'czas_utc':<27}{'id':<20}treść")
+        print(f"{'prio':<5}{'recorded_at':<27}{'sektor':<10}treść")
         for r in rows[:a.n]:
-            print(f"{priority(r):<5}{(r.get('czas_utc') or '-'):<27}{r['id']:<20}{r['tresc'][:70]}")
+            print(f"P{priority(r):<4}{(r.get('recorded_at') or '-'):<27}{(r.get('sector') or '-'):<10}{r['text'][:70]}")
         return
     if a.cmd == "generate":
         reports, labels = generate(a.n, seed=a.seed, noise=not a.no_noise)

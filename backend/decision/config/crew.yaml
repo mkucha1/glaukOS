@@ -1,10 +1,8 @@
-# Role na statku, do których model może przydzielić zadanie.
-# Klucz = identyfikator roli (etykieta "gold"), opis = tekst widziany przez model.
+# Kto ma się zająć zgłoszeniem (pytanie `osoba`). Klucze = role z frontendu (frontend/src/types.ts: Role),
+# crew_id z mozg-statku/server/config/crew.json. Na statku nie ma elektryka (ETO) ani roli kuchni:
+# sprawy elektryczne przejmuje 2nd_engineer, a pokład, nadbudówkę, kuchnię i prowiant — officer.
 
 crew:
-  starszy_oficer:   {dzial: pokład,      opis: "Starszy oficer — ładunek, stateczność, bezpieczeństwo na pokładzie"}
-  bosman:           {dzial: pokład,      opis: "Bosman — prace pokładowe, cumowanie, konserwacja sprzętu pokładowego"}
-  starszy_mechanik: {dzial: maszynownia, opis: "Starszy mechanik — poważne awarie maszynowni, decyzje techniczne"}
-  drugi_mechanik:   {dzial: maszynownia, opis: "Drugi mechanik — bieżące usterki silnika, pomp i instalacji"}
-  elektryk:         {dzial: maszynownia, opis: "Elektryk (ETO) — instalacja elektryczna, oświetlenie, automatyka"}
-  kucharz:          {dzial: kuchnia,     opis: "Starszy kucharz — kuchnia, prowiant, chłodnie, kabiny"}
+  chief_engineer: {dzial: engine, crew_id: anna, opis: "Starszy mechanik — poważne awarie, decyzje techniczne, zamówienia części, paliwo, odolejacz"}
+  2nd_engineer:   {dzial: engine, crew_id: tom,  opis: "Drugi mechanik — bieżące usterki i obchody maszynowni, pompy, generatory, elektryka, chłodnie, klimatyzacja"}
+  officer:        {dzial: deck,   crew_id: ivan, opis: "Oficer — pokład, ładunek, balast, cumowanie, sprzęt ratunkowy i ppoż., nawigacja, nadbudówka, kuchnia i prowiant, odpady"}

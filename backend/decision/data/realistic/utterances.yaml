@@ -8,7 +8,10 @@
 # Pola:
 #   tresc                — surowa wypowiedź (wejście dla modelu kompresującego i/lub Basala)
 #   streszczenie_wzorcowe — jak powinna wyglądać po skompresowaniu (do oceny modelu kompresji)
-#   gold                 — poprawne decyzje; zasada: dzial/osoba = KTO MUSI DZIAŁAĆ (naprawić, zamówić, zdecydować)
+#   stanowisko           — rola zgłaszającego z frontendu (2nd_engineer, chief_engineer, officer)
+#   lokalizacja          — po angielsku, zgodnie z sektorami przekroju statku we frontendzie (shipdec/ship.py)
+#   gold                 — poprawne decyzje; pilnosc = priorytet P1-P3 (1 = pilne, jak we frontendzie);
+#                          zasada: dzial/osoba = KTO MUSI DZIAŁAĆ (naprawić, zamówić, zdecydować)
 #   cechy                — co utrudnia wypowiedź (do analizy błędów)
 #   uwagi                — gdzie etykieta jest dyskusyjna
 #   niejednoznaczne: true — wypowiedź bez wystarczającej treści; poprawna reakcja aplikacji: dopytać
@@ -19,643 +22,643 @@ wypowiedzi:
   # ======================================================================== PO POLSKU
   - id: p01
     jezyk: pl
-    stanowisko: motorzysta
-    lokalizacja: "centrala maszynowni (ECR)"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine control room"
     kategoria: rutyna
     tresc: "yyy no to tak, obchód o czwartej zrobiony, wszystko w normie, ciśnienie oleju na głównym cztery i pół... albo cztery sześć, nie pamiętam dokładnie, w każdym razie w normie, temperatury też"
     streszczenie_wzorcowe: "Obchód maszynowni o 04:00 bez uwag. Ciśnienie oleju silnika głównego ok. 4,5 bar, temperatury w normie."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [wypelniacze, autokorekta, niepewna_liczba]
 
   - id: p02
     jezyk: pl
-    stanowisko: trzeci mechanik
-    lokalizacja: "maszynownia — poziom dolny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, lower platform"
     kategoria: rutyna
     tresc: "sounding zrobiony, eee, fuel oil tank trzy prawy sto dwadzieścia osiem kubików, dwójka, znaczy dwa lewy, osiemdziesiąt... osiemdziesiąt cztery, wpiszę potem do książki"
     streszczenie_wzorcowe: "Pomiary zbiorników paliwa: zbiornik 3P — 128 m³, zbiornik 2L — 84 m³. Do wpisania do dziennika."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: starszy_mechanik}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: chief_engineer}
     cechy: [mieszanie_jezykow, liczby_slownie, autokorekta]
 
   - id: p03
     jezyk: pl
-    stanowisko: elektryk
-    lokalizacja: "nadbudówka — kabiny załogi"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Accommodation, crew cabins"
     kategoria: rutyna
     tresc: "no więc w kabinie trzysta dwanaście, tej co jest ten nowy kadet, nie działa gniazdko przy biurku, sprawdzę jak skończę z tym, z generatorem, to nic pilnego"
     streszczenie_wzorcowe: "Kabina 312: nie działa gniazdko przy biurku. Niepilne, elektryk sprawdzi po pracy przy generatorze."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [dygresja, wypelniacze]
 
   - id: p04
     jezyk: pl
-    stanowisko: bosman
-    lokalizacja: "pokład główny"
+    stanowisko: officer
+    lokalizacja: "Main deck"
     kategoria: rutyna
     tresc: "chłopaki skończyli dziś skuwanie rdzy i podkład przy trójce, przy włazie trzy znaczy, jutro jak pogoda pozwoli to top coat, aha i potrzebujemy więcej pędzli bo się kończą, wałków też"
     streszczenie_wzorcowe: "Przy włazie nr 3 skuto rdzę i nałożono podkład; jutro farba nawierzchniowa, jeśli pogoda pozwoli. Kończą się pędzle i wałki — do zamówienia."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [wiele_tematow, mieszanie_jezykow, autokorekta]
 
   - id: p05
     jezyk: pl
-    stanowisko: starszy oficer
-    lokalizacja: "mostek"
+    stanowisko: officer
+    lokalizacja: "Bridge"
     kategoria: rutyna
     tresc: "przekazuję wachtę, kurs bez zmian dwa-trzy-pięć, prędkość dwanaście i pół, ruch mały, jeden rybak na prawej burcie daleko, nic się nie dzieje"
     streszczenie_wzorcowe: "Przekazanie wachty: kurs 235°, prędkość 12,5 w., mały ruch, jeden kuter rybacki daleko na prawej burcie. Bez uwag."
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
     cechy: [liczby_slownie, zargon]
 
   - id: p06
     jezyk: pl
-    stanowisko: motorzysta
-    lokalizacja: "przedział pomp"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, pump flat"
     kategoria: usterka
     tresc: "kurde znowu kapie z tej pompy chłodzenia, numer dwa, pod spodem kałuża, wytarłem i podstawiłem tackę, ale ktoś musi zobaczyć uszczelnienie bo się robi coraz gorzej"
     streszczenie_wzorcowe: "Przeciek na uszczelnieniu pompy chłodzenia nr 2, narasta. Wytarto i podstawiono tackę; uszczelnienie do sprawdzenia."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [potocznie, emocje]
 
   - id: p07
     jezyk: pl
-    stanowisko: starszy mechanik
-    lokalizacja: "biuro mechanika"
+    stanowisko: chief_engineer
+    lokalizacja: "Engine control room"
     kategoria: usterka
     tresc: "do zamówienia na Rotterdam: filtry paliwa do generatorów, osiem sztuk, uszczelki do pompy balastowej, i... co jeszcze, aha, olej do sprężarki dwie beczki. Filtrów mamy na tydzień, więc to pilne"
     streszczenie_wzorcowe: "Zamówienie na Rotterdam: 8 filtrów paliwa do generatorów (zapas na tydzień — pilne), uszczelki do pompy balastowej, 2 beczki oleju do sprężarki."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: starszy_mechanik}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: chief_engineer}
     cechy: [lista, wahanie]
 
   - id: p08
     jezyk: pl
-    stanowisko: trzeci mechanik
-    lokalizacja: "centrala maszynowni (ECR)"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine control room"
     kategoria: rutyna
     tresc: "zużycie wody wczoraj jedenaście ton, wyparownik robi... znaczy produkuje dziewięć, więc zapas spada, nie wiem, może trzeba ograniczyć prysznice, niech chief zdecyduje"
     streszczenie_wzorcowe: "Zużycie wody słodkiej 11 t/dobę przy produkcji 9 t — zapas spada. Do decyzji starszego mechanika (np. ograniczenie zużycia)."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: starszy_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: chief_engineer}
     cechy: [autokorekta, liczby_slownie, prosba_o_decyzje]
 
   - id: p10
     jezyk: pl
-    stanowisko: bosman
-    lokalizacja: "pokład rufowy"
+    stanowisko: officer
+    lokalizacja: "Main deck, aft mooring station"
     kategoria: usterka
     tresc: "lina na rufie, ta druga od lewej, już mocno przetarta, przy ostatnim cumowaniu jęczała, trzeba wymienić zanim wejdziemy do portu, mamy zapasową w magazynie bosmańskim"
     streszczenie_wzorcowe: "Druga lina cumownicza od lewej na rufie mocno przetarta — do wymiany przed wejściem do portu. Zapasowa jest w magazynie bosmańskim."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [potocznie]
 
   - id: p11
     jezyk: pl
-    stanowisko: elektryk
-    lokalizacja: "mostek"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Bridge"
     kategoria: usterka
     tresc: "yyy, światło topowe, zapasowa żarówka znaczy zapasowa lampa nie działa, główna działa, ale rezerwy nie ma, muszę dziś wymienić bo bez rezerwy nie powinniśmy... no płynąć możemy ale nie powinniśmy"
     streszczenie_wzorcowe: "Światło topowe: lampa zapasowa niesprawna (główna działa). Do wymiany dziś."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [autokorekta, urwane_zdanie]
-    uwagi: "światła nawigacyjne to sprawa mostka, ale naprawia elektryk — dział wg zasady 'kto działa'"
+    uwagi: "światła nawigacyjne to sprawa mostka, ale naprawia maszynownia (brak ETO: 2nd_engineer) — dział wg zasady 'kto działa'"
 
   - id: p12
     jezyk: pl
-    stanowisko: starszy oficer
-    lokalizacja: "pokład główny — rejon ładowni"
+    stanowisko: officer
+    lokalizacja: "Main deck, hatch area"
     kategoria: rutyna
     tresc: "ładownia dwa i cztery wymyte, suszą się, jutro rano trzeba sprawdzić czy suche przed inspekcją w porcie, jedynka jeszcze w trakcie"
     streszczenie_wzorcowe: "Ładownie 2 i 4 umyte, schną; jutro rano kontrola przed inspekcją w porcie. Ładownia 1 w trakcie mycia."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [skrot_myslowy]
 
   - id: p13
     jezyk: pl
-    stanowisko: motorzysta
-    lokalizacja: "maszynownia — poziom dolny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, lower platform"
     kategoria: rutyna
     tresc: "yyy zęzy w maszynowni wypompowane do zbiornika zęzowego, zbiornik ma już, no, siedemdziesiąt procent, trzeba będzie zdać w porcie albo przepuścić przez separator jak chief da zgodę"
     streszczenie_wzorcowe: "Zęzy maszynowni przepompowane do zbiornika zęzowego (zapełnienie ok. 70%). Do zdania w porcie lub przez separator — za zgodą starszego mechanika."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: starszy_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: chief_engineer}
     cechy: [wypelniacze, zargon]
 
   - id: p14
     jezyk: pl
-    stanowisko: trzeci mechanik
-    lokalizacja: "pomieszczenie generatora awaryjnego"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Emergency generator room"
     kategoria: usterka
     tresc: "test awaryjnego generatora zrobiony, odpalił za drugim razem, za pierwszym nie chciał, akumulatory chyba słabe, trzeba sprawdzić"
     streszczenie_wzorcowe: "Test generatora awaryjnego: uruchomił się dopiero za drugą próbą. Podejrzenie słabych akumulatorów — do sprawdzenia."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [domysl]
-    uwagi: "osoba: elektryk (akumulatory) albo drugi mechanik (generator) — do ustalenia z załogą"
+    uwagi: "akumulatory i generator awaryjny — na tym statku oba przejmuje 2nd_engineer (brak ETO)"
 
   - id: p15
     jezyk: pl
-    stanowisko: starszy mechanik
-    lokalizacja: "mesa"
+    stanowisko: chief_engineer
+    lokalizacja: "Mess room"
     kategoria: rutyna
     tresc: "w kabinie u kucharza klima nie chłodzi, mówił mi przy obiedzie, niech elektryk zerknie jak będzie miał chwilę"
     streszczenie_wzorcowe: "Klimatyzacja w kabinie kucharza nie chłodzi. Elektryk ma sprawdzić w wolnej chwili."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [relacja_z_drugiej_reki, potocznie]
 
   - id: p16
     jezyk: pl
-    stanowisko: bosman
-    lokalizacja: "pokład dziobowy"
+    stanowisko: officer
+    lokalizacja: "Forecastle"
     kategoria: usterka
     tresc: "kotwica... znaczy winda kotwiczna lewa, hamulec trochę ślizga, przy ostatnim kotwiczeniu zauważyłem, przed następnym trzeba wyregulować"
     streszczenie_wzorcowe: "Lewa winda kotwiczna: ślizga się hamulec (zauważone przy ostatnim kotwiczeniu). Do regulacji przed następnym kotwiczeniem."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [autokorekta]
 
   - id: p17
     jezyk: pl
-    stanowisko: starszy oficer
-    lokalizacja: "pokład łodziowy"
+    stanowisko: officer
+    lokalizacja: "Boat deck"
     kategoria: rutyna
     tresc: "szalupa... łódź ratunkowa sprawdzona, cotygodniowy test silnika zrobiony, chodził pięć minut, wszystko okej, wpisane"
     streszczenie_wzorcowe: "Cotygodniowa kontrola łodzi ratunkowej i test silnika (5 min) — bez uwag, wpisane do dziennika."
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
     cechy: [autokorekta, potocznie]
 
   - id: p18
     jezyk: pl
-    stanowisko: motorzysta
-    lokalizacja: "warsztat maszynowy"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, workshop"
     kategoria: usterka
     tresc: "tego, w warsztacie ta szlifierka stołowa, osłona pęknięta, odstawiłem i dałem kartkę żeby nikt nie używał"
     streszczenie_wzorcowe: "Szlifierka stołowa w warsztacie: pęknięta osłona. Wyłączona z użycia i oznaczona."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [wypelniacze]
 
   - id: p19
     jezyk: pl
-    stanowisko: trzeci mechanik
-    lokalizacja: "maszynownia — poziom dolny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, lower platform"
     kategoria: zdarzenie
     tresc: "eee spadłem, znaczy prawie spadłem na schodach do dolnej maszynowni, jeden stopień jest luźny, ten trzeci od dołu, trzeba to zespawać zanim ktoś się naprawdę połamie"
     streszczenie_wzorcowe: "Prawie wypadek: luźny trzeci stopień od dołu na schodach do dolnej maszynowni, zgłaszający o mało nie spadł. Stopień do zespawania."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: true, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: true, osoba: 2nd_engineer}
     cechy: [autokorekta, emocje]
 
   - id: p20
     jezyk: pl
-    stanowisko: starszy oficer
-    lokalizacja: "magazyn farb"
+    stanowisko: officer
+    lokalizacja: "Main deck, paint store"
     kategoria: usterka
     tresc: "aha, jeszcze jedno, bosman mówił że w magazynie farb śmierdzi rozpuszczalnikiem, wentylacja może nie działa, niech ktoś z maszyny sprawdzi wentylator"
     streszczenie_wzorcowe: "W magazynie farb czuć opary rozpuszczalnika — możliwa awaria wentylacji. Maszynownia ma sprawdzić wentylator."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [relacja_z_drugiej_reki, domysl, dopowiedzenie]
 
   - id: p21
     jezyk: pl
-    stanowisko: elektryk
-    lokalizacja: "przedział pomp"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, pump flat"
     kategoria: rutyna
     tresc: "zrobiłem pomiary izolacji na pompach balastowych, wszystko powyżej normy, poza jedną, jedynka ma niską, ale jeszcze dopuszczalną, będę obserwował"
     streszczenie_wzorcowe: "Pomiary izolacji pomp balastowych w normie; pompa nr 1 niska, ale dopuszczalna — do obserwacji."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [zargon]
 
   - id: p22
     jezyk: pl
-    stanowisko: bosman
-    lokalizacja: "pokład główny"
+    stanowisko: officer
+    lokalizacja: "Main deck"
     kategoria: usterka
     tresc: "znowu ktoś zostawił otwarte drzwi wodoszczelne na pokładzie głównym, te przy magazynie, mówię już trzeci raz, trzeba to omówić na zebraniu"
     streszczenie_wzorcowe: "Po raz trzeci zastano otwarte drzwi wodoszczelne na pokładzie głównym przy magazynie. Do omówienia na zebraniu BHP."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [emocje, potocznie]
 
   - id: p23
     jezyk: pl
-    stanowisko: starszy mechanik
-    lokalizacja: "biuro mechanika"
+    stanowisko: chief_engineer
+    lokalizacja: "Engine control room"
     kategoria: rutyna
     tresc: "paliwo, dzienne zużycie trzydzieści dwie tony, trochę więcej niż zwykle, pewnie przez falę, idzie do noon reportu"
     streszczenie_wzorcowe: "Dobowe zużycie paliwa 32 t — nieco powyżej normy, prawdopodobnie przez falę. Do raportu południowego."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: starszy_mechanik}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: chief_engineer}
     cechy: [mieszanie_jezykow, domysl]
 
   - id: p24
     jezyk: pl
-    stanowisko: motorzysta
-    lokalizacja: "maszynownia — poziom górny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, upper platform"
     kategoria: usterka
     tresc: "no i jeszcze ten, sprężarka powietrza numer jeden, za długo ładuje, wcześniej piętnaście minut teraz prawie dwadzieścia pięć, zawory chyba"
     streszczenie_wzorcowe: "Sprężarka powietrza nr 1 ładuje butle ok. 25 min zamiast 15 — podejrzenie zaworów."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [wypelniacze, domysl]
 
   - id: p25
     jezyk: pl
-    stanowisko: kapitan
-    lokalizacja: "mostek"
+    stanowisko: officer
+    lokalizacja: "Bridge"
     kategoria: rutyna
     tresc: "proszę na jutro przygotować wszystko do inspekcji PSC, dokumenty, gaśnice sprawdzone, no i ćwiczenia pożarowe jutro po obiedzie"
     streszczenie_wzorcowe: "Polecenie kapitana: na jutro przygotowanie do inspekcji PSC (dokumenty, kontrola gaśnic) i ćwiczenia pożarowe po obiedzie."
-    gold: {dzial: pokład, pilnosc: 3, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: false, osoba: officer}
     cechy: [polecenie, zargon]
 
   - id: p26
     jezyk: pl
-    stanowisko: trzeci mechanik
-    lokalizacja: "przedział separatorów"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Purifier room"
     kategoria: usterka
     tresc: "oily water separator, ten, alarm piętnaście ppm wyskakuje co chwilę, czujnik chyba brudny, zatrzymałem pompowanie"
     streszczenie_wzorcowe: "Odolejacz wód zęzowych: powtarzający się alarm 15 ppm, prawdopodobnie zabrudzony czujnik. Pompowanie zatrzymane."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: starszy_mechanik}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: chief_engineer}
     cechy: [mieszanie_jezykow, zargon, domysl]
 
   - id: p27
     jezyk: pl
-    stanowisko: elektryk
-    lokalizacja: "chłodnia prowiantowa"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Galley, provision cold room"
     kategoria: usterka
     tresc: "chłodnia warzywna, kompresor stuka, temperatura jeszcze trzyma plus cztery ale to nie potrwa długo"
     streszczenie_wzorcowe: "Chłodnia warzywna: stuka kompresor, temperatura na razie +4°C — wymaga szybkiej naprawy."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [skrot_myslowy]
-    uwagi: "w syntetycznym szablonie 'chlodnia' ta sama sytuacja ma dział kuchnia — do ujednolicenia (kto zgłasza vs kto naprawia)"
+    uwagi: "zgłasza kuchnia, naprawia maszynownia — wg zasady 'kto działa' (spójne z szablonem 'chlodnia')"
 
   - id: p28
     jezyk: pl
-    stanowisko: starszy oficer
-    lokalizacja: "pokład dziobowy"
+    stanowisko: officer
+    lokalizacja: "Forecastle"
     kategoria: zdarzenie
     tresc: "bosman zgłosił że na dziobie przy windzie kotwicznej leżała lina, ktoś się o nią potknął, nic się nie stało, ale trzeba to zgłosić jako near miss"
     streszczenie_wzorcowe: "Prawie wypadek na dziobie: potknięcie o linę pozostawioną przy windzie kotwicznej, bez obrażeń. Do zgłoszenia jako near miss."
-    gold: {dzial: pokład, pilnosc: 3, raport_dpa: true, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: true, osoba: officer}
     cechy: [relacja_z_drugiej_reki, mieszanie_jezykow]
 
   - id: p29
     jezyk: pl
-    stanowisko: motorzysta
-    lokalizacja: "maszynownia — poziom górny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, upper platform"
     kategoria: zdarzenie
     tresc: "w ruro... w rurociągu paliwa na górnej platformie, pod kocioł pomocniczy, jest wyciek na kołnierzu, kapie, i znaczy pod spodem na izolacji jest trochę paliwa"
     streszczenie_wzorcowe: "Wyciek paliwa na kołnierzu rurociągu do kotła pomocniczego (górna platforma); paliwo na izolacji — zagrożenie pożarowe."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: true, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: true, osoba: 2nd_engineer}
     cechy: [urwane_slowo, wypelniacze]
 
   - id: p31
     jezyk: pl
-    stanowisko: bosman
-    lokalizacja: "magazyn bosmański"
+    stanowisko: officer
+    lokalizacja: "Forecastle, bosun store"
     kategoria: rutyna
     tresc: "w magazynie bosmańskim kończą się rękawice robocze i kombinezony, rozmiar L i XL, dopisać do zamówienia"
     streszczenie_wzorcowe: "Kończą się rękawice robocze i kombinezony (L, XL) — dopisać do zamówienia."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [lista]
 
   - id: p32
     jezyk: pl
-    stanowisko: trzeci mechanik
-    lokalizacja: "maszynownia — poziom górny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, upper platform"
     kategoria: rutyna
     tresc: "dwójka generator, oil change zrobiony, godziny wyzerowane"
     streszczenie_wzorcowe: "Generator nr 2: wymiana oleju wykonana, licznik godzin wyzerowany."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [bardzo_krotko, mieszanie_jezykow]
 
   - id: p33
     jezyk: pl
-    stanowisko: starszy oficer
-    lokalizacja: "biuro ładunkowe"
+    stanowisko: officer
+    lokalizacja: "Cargo office"
     kategoria: rutyna
     tresc: "balast, znaczy przebalastowanie skończone, zbiorniki dwa i trzy pełne, przegłębienie metr na rufę, stateczność policzona, ok"
     streszczenie_wzorcowe: "Zmiana balastu zakończona: zbiorniki 2 i 3 pełne, przegłębienie 1 m na rufę, stateczność sprawdzona."
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
     cechy: [autokorekta, zargon]
 
   - id: p34
     jezyk: pl
-    stanowisko: elektryk
-    lokalizacja: "mostek"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Bridge"
     kategoria: usterka
     tresc: "radar, ten X-band, obraz się, no, rozmywa co jakiś czas, drugi oficer mówił, sprawdzę po południu, ale może trzeba będzie serwisu w porcie"
     streszczenie_wzorcowe: "Radar X-band: okresowo rozmyty obraz (zgłosił II oficer). Elektryk sprawdzi po południu; możliwy serwis w porcie."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [mieszanie_jezykow, relacja_z_drugiej_reki]
-    uwagi: "sprzęt nawigacyjny — naprawia elektryk"
+    uwagi: "sprzęt nawigacyjny — naprawia maszynownia (brak ETO: 2nd_engineer)"
 
   - id: p35
     jezyk: pl
-    stanowisko: motorzysta
-    lokalizacja: "centrala maszynowni (ECR)"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine control room"
     kategoria: rutyna
     tresc: "yyy, nic, wszystko dobrze, znaczy, normalnie"
     streszczenie_wzorcowe: "Brak konkretnej treści — dopytać zgłaszającego, czego dotyczy zgłoszenie."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [brak_tresci]
     niejednoznaczne: true
 
   - id: p36
     jezyk: pl
-    stanowisko: starszy mechanik
-    lokalizacja: "maszynownia — poziom górny"
+    stanowisko: chief_engineer
+    lokalizacja: "Engine room, upper platform"
     kategoria: usterka
     tresc: "do elektryka: na górnej platformie trzy lampy nie świecą, ciemno przy separatorach, dziś do zrobienia bo chłopaki tam pracują"
     streszczenie_wzorcowe: "Górna platforma maszynowni: nie świecą 3 lampy przy separatorach. Do naprawy dziś (trwają tam prace)."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [polecenie, potocznie]
 
   - id: p37
     jezyk: pl
-    stanowisko: bosman
-    lokalizacja: "pokład główny"
+    stanowisko: officer
+    lokalizacja: "Main deck"
     kategoria: rutyna
     tresc: "trap... trap burtowy sprawdzony przed portem, siatka założona, liny ok, oświetlenie działa"
     streszczenie_wzorcowe: "Trap burtowy sprawdzony przed portem: siatka założona, liny i oświetlenie sprawne."
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
     cechy: [powtorzenie, lista]
 
   - id: p38
     jezyk: pl
-    stanowisko: trzeci mechanik
-    lokalizacja: "maszynownia — poziom dolny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, lower platform"
     kategoria: usterka
     tresc: "pomka zęzowa ta stara znaczy pompa zęzowa numer jeden nie zasysa, przełączyłem na dwójkę, dwójka chodzi"
     streszczenie_wzorcowe: "Pompa zęzowa nr 1 nie zasysa; przełączono na pompę nr 2, która działa."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [blad_rozpoznawania_mowy, autokorekta]
 
   - id: p39
     jezyk: pl
-    stanowisko: motorzysta
-    lokalizacja: "warsztat maszynowy"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, workshop"
     kategoria: rutyna
     tresc: "dobra to tak, trzy rzeczy: sprężarka chodzi, ciśnienie trzydzieści bar, kingston prawy czyszczony, było pełno muszli, i jeszcze w warsztacie skończył się tlen do spawania, butla pusta"
     streszczenie_wzorcowe: "1) Sprężarka pracuje, 30 bar. 2) Prawy kingston wyczyszczony z muszli. 3) Pusta butla tlenu do spawania — do uzupełnienia."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: starszy_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: chief_engineer}
     cechy: [wiele_tematow, zargon, lista]
     uwagi: "pilność i osoba wg najpilniejszego tematu (brak tlenu)"
 
   - id: p40
     jezyk: pl
-    stanowisko: starszy oficer
-    lokalizacja: "pokład rufowy"
+    stanowisko: officer
+    lokalizacja: "Main deck, aft mooring station"
     kategoria: zdarzenie
     tresc: "zgłaszam, że przy cumowaniu w Gdyni lina szarpnęła i odbiła, marynarz odskoczył, nikomu nic, ale było blisko, trzeba spisać near miss i omówić na zebraniu"
     streszczenie_wzorcowe: "Prawie wypadek przy cumowaniu w Gdyni: lina szarpnęła i odbiła, marynarz zdążył odskoczyć, bez obrażeń. Do spisania i omówienia na zebraniu."
-    gold: {dzial: pokład, pilnosc: 3, raport_dpa: true, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: true, osoba: officer}
     cechy: [mieszanie_jezykow, emocje]
 
   # ======================================================================== ANGIELSKI JAKO DRUGI JĘZYK
   - id: e01
     jezyk: en
-    stanowisko: marynarz AB
-    lokalizacja: "pokład główny"
+    stanowisko: officer
+    lokalizacja: "Main deck"
     kategoria: rutyna
     tresc: "Sir, ah, the paint for the main deck, we finish already the hatch three, ah, tomorrow we continue hatch four if no rain, also we need more thinner, almost finish"
     streszczenie_wzorcowe: "Painting at hatch 3 finished; hatch 4 tomorrow if no rain. Thinner almost finished — needs ordering."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [wiele_tematow, l2_gramatyka, wypelniacze]
 
   - id: e02
     jezyk: en
-    stanowisko: marynarz OS
-    lokalizacja: "pokład rufowy"
+    stanowisko: officer
+    lokalizacja: "Main deck, aft mooring station"
     kategoria: usterka
     tresc: "Good morning bosun, ahh the mooring rope at aft, the one at the, ah, poop deck starboard side, it's, how you call, chafing very much, maybe need change"
     streszczenie_wzorcowe: "Mooring rope on the poop deck, starboard side, badly chafed — may need replacing."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [l2_gramatyka, szukanie_slowa]
 
   - id: e03
     jezyk: en
-    stanowisko: drugi mechanik
-    lokalizacja: "centrala maszynowni (ECR)"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine control room"
     kategoria: usterka
     tresc: "So, main engine cylinder five, exhaust temperature, eh, it is going up since half hour, now four hundred twenty, others three eighty. I will check fuel valve, maybe need change, I tell chief"
     streszczenie_wzorcowe: "ME cylinder 5 exhaust temperature rising for 30 min: 420°C vs ~380°C on others. Fuel valve to be checked; Chief Engineer informed."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: starszy_mechanik}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: chief_engineer}
     cechy: [l2_gramatyka, liczby_slownie]
 
   - id: e04
     jezyk: en
-    stanowisko: starszy kucharz
-    lokalizacja: "chłodnia prowiantowa"
+    stanowisko: officer
+    lokalizacja: "Galley, provision cold room"
     kategoria: usterka
-    tresc: "Chief cook here. Ah, the vegetable chiller, the temperature is plus nine, I think compressor problem, all vegetable inside, maybe two days and spoiled. Please engine check, thank you"
+    tresc: "Ah, Chief cook tell me just now, the vegetable chiller, the temperature is plus nine, I think compressor problem, all vegetable inside, maybe two days and spoiled. Please engine check, thank you"
     streszczenie_wzorcowe: "Vegetable chiller at +9°C, suspected compressor fault; vegetables will spoil within ~2 days. Engine department to check."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [l2_gramatyka, domysl]
-    uwagi: "zgłasza kuchnia, naprawia maszynownia — wg zasady 'kto działa'"
+    uwagi: "kuchnia nie ma roli — oficer przekazuje zgłoszenie kucharza; naprawia maszynownia (zasada 'kto działa')"
 
   - id: e05
     jezyk: en
-    stanowisko: pomocnik kucharza
-    lokalizacja: "kuchnia"
+    stanowisko: officer
+    lokalizacja: "Galley"
     kategoria: zdarzenie
     tresc: "ah sorry, small accident in galley, I cut my finger when cutting meat, not deep, already put plaster, chief cook said to report"
     streszczenie_wzorcowe: "Minor injury in the galley: messman cut finger while cutting meat, not deep, plaster applied. Reported on Chief Cook's instruction."
-    gold: {dzial: kuchnia, pilnosc: 3, raport_dpa: true, osoba: kucharz}
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: true, osoba: officer}
     cechy: [l2_gramatyka, przeprosiny]
-    uwagi: "osoba: kucharz albo oficer odpowiedzialny za opiekę medyczną — do ustalenia"
+    uwagi: "kuchnia nie ma roli we frontendzie — zgłoszenie i opieka medyczna przechodzą do oficera"
 
   - id: e06
     jezyk: en
-    stanowisko: trzeci oficer
-    lokalizacja: "pokład łodziowy"
+    stanowisko: officer
+    lokalizacja: "Boat deck"
     kategoria: rutyna
     tresc: "Weekly inspection of lifebuoys and lifejackets done, one lifejacket light not working, ah, replaced from spare, all entered in the log"
     streszczenie_wzorcowe: "Weekly lifebuoy and lifejacket inspection done; one faulty lifejacket light replaced from spares. Logged."
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
     cechy: [wypelniacze]
 
   - id: e07
     jezyk: en
-    stanowisko: drugi oficer
-    lokalizacja: "mostek"
+    stanowisko: officer
+    lokalizacja: "Bridge"
     kategoria: rutyna
     tresc: "Handing over the watch, course two three five, speed twelve point five, ah, one fishing vessel on starboard bow, far, CPA more than two miles, nothing else"
     streszczenie_wzorcowe: "Watch handover: course 235°, speed 12.5 kn, one fishing vessel on starboard bow, CPA > 2 nm. Nothing else."
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
     cechy: [liczby_slownie, zargon]
 
   - id: e08
     jezyk: en
-    stanowisko: motorzysta
-    lokalizacja: "maszynownia — poziom dolny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, lower platform"
     kategoria: usterka
     tresc: "Sir, the bilge, the bilge alarm in engine room is coming again and again, I check already, no water much, maybe the float switch is, ah, stuck"
     streszczenie_wzorcowe: "Engine room bilge alarm repeatedly activating with little water present — suspected stuck float switch."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [powtorzenie, l2_gramatyka, domysl]
 
   - id: e09
     jezyk: en
-    stanowisko: marynarz AB
-    lokalizacja: "pokład główny"
+    stanowisko: officer
+    lokalizacja: "Main deck"
     kategoria: usterka
     tresc: "Ah bosun, the gangway, the, the net, safety net, is torn already on one side, before port we need change"
     streszczenie_wzorcowe: "Gangway safety net torn on one side — replace before arrival in port."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [powtorzenie, autokorekta]
 
   - id: e10
     jezyk: en
-    stanowisko: drugi mechanik
-    lokalizacja: "maszynownia — poziom górny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, upper platform"
     kategoria: rutyna
     tresc: "Generator number two, ah, I do the oil change and filters, finish, running hours reset, also the, how you say, the turbocharger washing done"
     streszczenie_wzorcowe: "Generator No. 2: oil and filter change completed, running hours reset; turbocharger washing done."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [l2_gramatyka, szukanie_slowa, wiele_tematow]
 
   - id: e11
     jezyk: en
-    stanowisko: starszy kucharz
-    lokalizacja: "magazyn prowiantowy"
+    stanowisko: officer
+    lokalizacja: "Galley, provision store"
     kategoria: usterka
     tresc: "Provision, ah, we have only milk for two days, eggs also finish soon, next port is six days, maybe we can order from agent or something"
     streszczenie_wzorcowe: "Milk left for 2 days, eggs running out; next port in 6 days. Consider ordering via the agent."
-    gold: {dzial: kuchnia, pilnosc: 3, raport_dpa: false, osoba: kucharz}
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: false, osoba: officer}
     cechy: [l2_gramatyka, liczby_slownie]
 
   - id: e12
     jezyk: en
-    stanowisko: marynarz OS
-    lokalizacja: "pokład dziobowy"
+    stanowisko: officer
+    lokalizacja: "Forecastle"
     kategoria: zdarzenie
     tresc: "Sir sorry, ah, the ladder to the forecastle, one step is loose, I almost fall, maybe need welding"
     streszczenie_wzorcowe: "Near miss: loose step on the ladder to the forecastle, reporter almost fell. Needs welding."
-    gold: {dzial: pokład, pilnosc: 3, raport_dpa: true, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: true, osoba: officer}
     cechy: [l2_gramatyka, przeprosiny]
 
   - id: e13
     jezyk: en
-    stanowisko: trzeci oficer
-    lokalizacja: "mostek"
+    stanowisko: officer
+    lokalizacja: "Bridge"
     kategoria: usterka
     tresc: "Ah, the GPS number two, it's giving alarm, position lost sometimes, few seconds, then come back, I inform the captain already"
     streszczenie_wzorcowe: "GPS No. 2 intermittently loses position for a few seconds and alarms. Master informed."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [l2_gramatyka]
-    uwagi: "sprzęt nawigacyjny — naprawia elektryk"
+    uwagi: "sprzęt nawigacyjny — naprawia maszynownia (brak ETO: 2nd_engineer)"
 
   - id: e14
     jezyk: en
-    stanowisko: drugi mechanik
-    lokalizacja: "spalarnia"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, incinerator"
     kategoria: usterka
     tresc: "Incinerator, ah, not igniting, I think the burner nozzle dirty, I will clean tomorrow, garbage store is getting full"
     streszczenie_wzorcowe: "Incinerator not igniting, likely dirty burner nozzle — cleaning planned tomorrow. Garbage store filling up."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [l2_gramatyka, wiele_tematow]
 
   - id: e15
     jezyk: en
-    stanowisko: marynarz AB
-    lokalizacja: "pokład główny"
+    stanowisko: officer
+    lokalizacja: "Main deck"
     kategoria: usterka
     tresc: "Bosun, the fire hose at the, ah, the main deck port side station number four, the coupling is broken, cannot connect"
     streszczenie_wzorcowe: "Fire hose at main deck port side station No. 4: broken coupling, cannot be connected."
-    gold: {dzial: pokład, pilnosc: 3, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: false, osoba: officer}
     cechy: [l2_gramatyka, wypelniacze]
 
   - id: e16
     jezyk: en
-    stanowisko: pomocnik kucharza
-    lokalizacja: "pralnia"
+    stanowisko: officer
+    lokalizacja: "Accommodation, laundry"
     kategoria: usterka
     tresc: "the washing machine in laundry, it's leaking water on floor again, I put towel, but maybe somebody slip"
     streszczenie_wzorcowe: "Laundry washing machine leaking onto the floor again; towel placed, slip hazard."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: elektryk}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [l2_gramatyka]
 
   - id: e17
     jezyk: en
-    stanowisko: drugi oficer
-    lokalizacja: "mostek"
+    stanowisko: officer
+    lokalizacja: "Bridge"
     kategoria: rutyna
     tresc: "Ah, I finish the chart corrections for this week, notices to mariners, all done, also updated the passage plan for next port"
     streszczenie_wzorcowe: "Weekly chart corrections (Notices to Mariners) completed; passage plan for the next port updated."
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
     cechy: [wiele_tematow, zargon]
 
   - id: e18
     jezyk: en
-    stanowisko: motorzysta
-    lokalizacja: "maszynownia — poziom dolny"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, lower platform"
     kategoria: rutyna
     tresc: "Fuel transfer finish, ah, settling tank full, I close the valve already, no leak"
     streszczenie_wzorcowe: "Fuel transfer completed, settling tank full, valve closed, no leaks."
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [l2_gramatyka]
 
   - id: e19
     jezyk: en
-    stanowisko: marynarz AB
-    lokalizacja: "pokład główny — rejon ładowni"
+    stanowisko: officer
+    lokalizacja: "Main deck, hatch area"
     kategoria: usterka
     tresc: "the, the hydraulic, hatch cover hydraulic pipe at hatch two, small leak oil, I put rag, maybe engine can check"
     streszczenie_wzorcowe: "Small hydraulic oil leak on the hatch cover pipe at hatch 2; rag placed. Engine department to check."
-    gold: {dzial: maszynownia, pilnosc: 2, raport_dpa: false, osoba: drugi_mechanik}
+    gold: {dzial: engine, pilnosc: 2, raport_dpa: false, osoba: 2nd_engineer}
     cechy: [powtorzenie, l2_gramatyka]
     uwagi: "urządzenie pokładowe, ale naprawia maszynownia"
 
   - id: e20
     jezyk: en
-    stanowisko: trzeci oficer
-    lokalizacja: "pokład łodziowy"
+    stanowisko: officer
+    lokalizacja: "Boat deck"
     kategoria: usterka
     tresc: "During the fire drill today one, ah, one breathing apparatus, the air bottle was only half pressure, we need to refill, compressor is with engine department"
     streszczenie_wzorcowe: "Fire drill: one breathing apparatus cylinder only at half pressure — needs refilling (compressor is with the engine department)."
-    gold: {dzial: pokład, pilnosc: 3, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: false, osoba: officer}
     cechy: [powtorzenie, wiele_tematow]
 
   - id: e21
     jezyk: en
-    stanowisko: drugi mechanik
-    lokalizacja: "magazyn części"
+    stanowisko: 2nd_engineer
+    lokalizacja: "Engine room, spare parts store"
     kategoria: usterka
     tresc: "So, we have no more spare for fuel filter of generator, last one I put today, chief please order, very important"
     streszczenie_wzorcowe: "No spare generator fuel filters left — last one fitted today. Urgent order needed."
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: starszy_mechanik}
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: chief_engineer}
     cechy: [l2_gramatyka]
 
   - id: e22
     jezyk: en
-    stanowisko: marynarz OS
-    lokalizacja: "nadbudówka — kabiny załogi"
+    stanowisko: officer
+    lokalizacja: "Accommodation, crew cabins"
     kategoria: rutyna
     tresc: "hello? ah yes, accommodation cleaning finish, ah, the corridor, the mess room, toilets, everything"
     streszczenie_wzorcowe: "Accommodation cleaning completed: corridors, mess room, toilets."
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
     cechy: [szum_poczatku, lista]
-    uwagi: "sprzątanie nadbudówki robią zwykle marynarze pokładowi; w config/questions.yaml kabiny są przy 'kuchnia' — do ujednolicenia"
+    uwagi: "sprzątanie nadbudówki — pod oficerem (we frontendzie nie ma roli bosmana)"
 
   - id: e23
     jezyk: en
-    stanowisko: drugi oficer
-    lokalizacja: "szpital okrętowy"
+    stanowisko: officer
+    lokalizacja: "Accommodation, ship's hospital"
     kategoria: rutyna
     tresc: "The, ah, the medicine chest, some medicines expire next month, I make the list, need to order in next port"
     streszczenie_wzorcowe: "Some medicines in the medicine chest expire next month; list prepared, to be ordered at the next port."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [l2_gramatyka]
 
   - id: e24
     jezyk: en
-    stanowisko: starszy kucharz
-    lokalizacja: "magazyn odpadów"
+    stanowisko: officer
+    lokalizacja: "Main deck, garbage store"
     kategoria: rutyna
     tresc: "garbage, ah, the food waste is full in the freezer, we need to land in port, and plastic bags also many"
     streszczenie_wzorcowe: "Food waste storage full and many plastic waste bags — garbage to be landed at the next port."
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: starszy_oficer}
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
     cechy: [l2_gramatyka]
-    uwagi: "gospodarką odpadami zwykle zarządza starszy oficer; w szablonie 'odpady_port' jest kuchnia — do ujednolicenia"
+    uwagi: "gospodarką odpadami zarządza starszy oficer (spójne z szablonem 'odpady_port')"
 
   - id: e25
     jezyk: en
-    stanowisko: marynarz AB
-    lokalizacja: "pokład główny"
+    stanowisko: officer
+    lokalizacja: "Main deck"
     kategoria: rutyna
     tresc: "* * the pilot ladder ah checked * okay"
     streszczenie_wzorcowe: "Pilot ladder checked, OK."
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: bosman}
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
     cechy: [luki_rozpoznawania_mowy, bardzo_krotko]

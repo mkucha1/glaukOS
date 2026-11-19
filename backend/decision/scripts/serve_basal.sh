@@ -12,7 +12,7 @@ if [[ -f .env ]]; then set -a; source .env; set +a; fi
 ENV_DIR="${ENV_DIR:-.venv}"
 MODEL="${MODEL:-Remek/basal-2.0-4.5B}"   # na Linuksie/NVIDIA nie bierzemy BASAL_MODEL (domyślnie MLX)
 MODE="${MODE:-fast-nocompile}"
-PORT="${PORT:-${BASAL_PORT:-8000}}"
+PORT="${PORT:-${BASAL_PORT:-8001}}"
 
 # shellcheck disable=SC1091
 source "$ENV_DIR/bin/activate"

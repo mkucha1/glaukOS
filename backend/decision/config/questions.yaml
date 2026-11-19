@@ -5,21 +5,23 @@
 questions:
   dzial:
     type: choice
-    instructions: "Który dział na statku powinien zająć się tym zgłoszeniem?"
+    instructions: "Który dział na statku musi się tym zająć (naprawić, zamówić, zdecydować)?"
     criteria:
-      pokład: "Dział pokładowy: kadłub, ładownie, cumowanie, dźwigi, sprzęt ratunkowy na pokładzie"
-      maszynownia: "Dział maszynowy: silnik, pompy, generatory, instalacje, elektryka"
-      kuchnia: "Dział hotelowy: kuchnia, prowiant, kabiny, pralnia"
+      engine: "Maszynownia: silnik, pompy, generatory, instalacje, elektryka i elektronika (także na mostku), chłodnie, klimatyzacja"
+      deck: "Reszta statku pod oficerem: pokład, ładownie, balast, cumowanie, sprzęt ratunkowy i ppoż., nawigacja, nadbudówka, kuchnia i prowiant, odpady"
 
   pilnosc:
-    # Pilność decyduje o kolejności obsługi i wysyłki na ląd po złapaniu łącza.
-    # Aplikacja jest do codziennych raportów; groźne zdarzenia obsługują alarmy i radio.
+    # Pilność = priorytet we frontendzie i na serwerze, skala 1-3, P1 = najwyższy.
+    # Decyduje o kolejności obsługi i wysyłki na ląd. Groźne zdarzenia obsługują alarmy i radio.
+    # Basal: `score`, poziomy od najniższego; klucz "0" = P3, "1" = P2, "2" = P1 (przelicza contract.py).
     type: score
     instructions: "Jak pilne jest to zgłoszenie dla codziennej pracy statku?"
     criteria:
-      - "1 — rutynowe: informacja, pomiar, wykonana praca albo drobiazg do zrobienia przy okazji"
-      - "2 — do załatwienia w najbliższych dniach albo przy następnym porcie"
-      - "3 — pilne: wpływa na pracę statku albo wymaga reakcji jeszcze dziś (naprawa, zamówienie, braki)"
+      - "P3 — rutynowe: informacja, pomiar, wykonana praca albo drobiazg do zrobienia przy okazji"
+      - "P2 — do załatwienia w najbliższych dniach albo przy następnym porcie"
+      - "P1 — pilne: wpływa na pracę statku albo wymaga reakcji jeszcze dziś (naprawa, zamówienie, braki)"
+    # Etykiety w danych są w skali P (1 = pilne); tu przeliczenie P -> poziom Basala (1 = najniższy).
+    gold_map: {1: 3, 2: 2, 3: 1}
 
   raport_dpa:
     type: noul
@@ -28,11 +30,23 @@ questions:
       "true": "Tak — ktoś został lub mógł zostać ranny, albo było zagrożenie dla statku lub środowiska"
       "false": "Nie — zwykła usterka lub prośba bez zagrożenia"
 
+  sektor:
+    # Tylko 4 główne sektory przekroju statku z frontendu (frontend/src/lib/ship.ts) — na nich działa demo.
+    # Pozostałe sektory frontendu są do nich dołączone (shipdec/ship.py: SECTOR_MERGE).
+    # Serwer wpisuje etykietę sektora do formularza (`location`), więc zgłoszenie trafia w dobre miejsce mapy.
+    # Nie wymaga zatwierdzania (próg 0.0): pomyłka przesuwa tylko kropkę na mapie.
+    type: choice
+    instructions: "Gdzie na statku jest to, czego dotyczy zgłoszenie?"
+    criteria:
+      engine: "Maszynownia: silnik główny, generatory, pompy, sprężarki, kotły, wirówki, centrala ECR, rozdzielnica, maszyna sterowa, zęzy, warsztat"
+      deck: "Pokład: dźwigi, pokrywy i wnętrze ładowni, cumowanie, dziób i windy kotwiczne, rufa, szalupy, trapy, reling, balast i zbiorniki"
+      galley: "Nadbudówka mieszkalna: kuchnia, mesa, chłodnie i magazyny prowiantu, kabiny, korytarze, łazienki, pralnia, klimatyzacja pomieszczeń"
+      bridge: "Mostek: radar, ECDIS, żyrokompas, VHF, autopilot, nawigacja, oświetlenie nawigacyjne"
+
   osoba:
     type: choice
     instructions: "Kto powinien przejąć to zadanie?"
-    # Uzupełniane automatycznie z config/crew.yaml (wszystkie role).
-    # TODO: w drugim kroku zawęzić listę do ról z działu wybranego w pytaniu `dzial`.
+    # Uzupełniane automatycznie z config/crew.yaml (klucze = role jak w crew.json serwera).
     criteria_from: crew
 
 # Progi pewności: decyzja z pewnością >= próg idzie automatycznie, poniżej do oficera.
@@ -43,3 +57,4 @@ thresholds:
   default: 0.80
   raport_dpa: 0.90
   pilnosc: 0.0
+  sektor: 0.0          # nie bramkuje; o wpisaniu do formularza decyduje sector_min_conf w contract.py

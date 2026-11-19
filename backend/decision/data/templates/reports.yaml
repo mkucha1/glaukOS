@@ -3,10 +3,12 @@
 #
 # Każdy szablon ma:
 #   kategoria   — rutyna | usterka | zdarzenie (losowanie wg `udzialy` niżej)
-#   gold        — poprawne odpowiedzi dla pytań z config/questions.yaml (NIE trafiają do pliku zgłoszenia)
-#                 pilnosc: 1 rutynowe, 2 w najbliższych dniach / przy porcie, 3 dziś (wpływa na pracę lub wymaga reakcji)
-#   miejsca     — pomieszczenia (metadane); z `miejsca_wg_slotu: true` lista jest równoległa do slotów
-#   zglaszajacy — stanowiska osób, które realnie by to zgłosiły (z config/roster.yaml)
+#   gold        — poprawne odpowiedzi dla pytań z config/questions.yaml (NIE trafiają do pliku zgłoszenia);
+#                 dzial/osoba = KTO MUSI DZIAŁAĆ (naprawić, zamówić, zdecydować), nie kto zgłasza
+#                 pilnosc = priorytet jak we frontendzie: 1 pilne (dziś), 2 w najbliższych dniach / przy porcie, 3 rutyna
+#   miejsca     — lokalizacje po angielsku, zgodne z sektorami przekroju statku we frontendzie
+#                 (shipdec/ship.py: sector_of); z `miejsca_wg_slotu: true` lista jest równoległa do slotów
+#   zglaszajacy — role z frontendu (2nd_engineer, chief_engineer, officer), w których ktoś by to zgłosił
 #   sloty       — wartości do {slot}; listy równoległe (jeden wspólny indeks), więc wersja pl i en mówią to samo
 #   teksty      — warianty treści per język (jak po zamianie mowy na tekst)
 # TODO: zastąpić/uzupełnić przykładami od prawdziwych oficerów.
@@ -14,12 +16,12 @@
 udzialy: {rutyna: 0.80, usterka: 0.15, zdarzenie: 0.05}
 
 templates:
-  # ---------------------------------------------------------------- RUTYNA (pilność 1-2)
+  # ---------------------------------------------------------------- RUTYNA (P3-P2)
   - id: obchod_maszynowni
     kategoria: rutyna
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: drugi_mechanik}
-    miejsca: ["centrala maszynowni (ECR)"]
-    zglaszajacy: ["motorzysta", "trzeci mechanik"]
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
+    miejsca: ["Engine control room"]
+    zglaszajacy: ["2nd_engineer"]
     sloty:
       cisnienie: ["cztery i pół", "cztery i dwie dziesiąte", "pięć"]
       cisnienie_en: ["four point five", "four point two", "five"]
@@ -31,9 +33,9 @@ templates:
 
   - id: pomiar_zbiornikow
     kategoria: rutyna
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: starszy_mechanik}
-    miejsca: ["maszynownia — poziom dolny", "centrala maszynowni (ECR)"]
-    zglaszajacy: ["motorzysta", "trzeci mechanik"]
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: chief_engineer}
+    miejsca: ["Engine room, lower platform", "Engine control room"]
+    zglaszajacy: ["2nd_engineer"]
     sloty:
       nr: ["jeden", "dwa", "trzy"]
       nr_en: ["one", "two", "three"]
@@ -45,9 +47,9 @@ templates:
 
   - id: zuzycie_wody
     kategoria: rutyna
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: drugi_mechanik}
-    miejsca: ["centrala maszynowni (ECR)"]
-    zglaszajacy: ["trzeci mechanik", "motorzysta"]
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
+    miejsca: ["Engine control room"]
+    zglaszajacy: ["2nd_engineer"]
     sloty:
       ile: ["osiem", "dziesięć", "dwanaście"]
       ile_en: ["eight", "ten", "twelve"]
@@ -57,10 +59,10 @@ templates:
 
   - id: malowanie_skonczone
     kategoria: rutyna
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: bosman}
-    miejsca: ["pokład główny", "pokład łodziowy", "pokład dziobowy"]
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    miejsca: ["Main deck", "Boat deck", "Forecastle"]
     miejsca_wg_slotu: true
-    zglaszajacy: ["marynarz AB", "marynarz OS"]
+    zglaszajacy: ["officer"]
     sloty:
       gdzie: ["przy włazie numer trzy", "na pokładzie łodziowym", "na dziobie"]
       gdzie_en: ["around hatch number three", "on the boat deck", "on the forecastle"]
@@ -70,9 +72,9 @@ templates:
 
   - id: farba_reling
     kategoria: rutyna
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: bosman}
-    miejsca: ["pokład główny", "pokład łodziowy"]
-    zglaszajacy: ["marynarz AB", "marynarz OS"]
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    miejsca: ["Main deck", "Boat deck"]
+    zglaszajacy: ["officer"]
     sloty:
       gdzie: ["na relingu przy mostku", "na pokładzie łodziowym", "przy włazie numer trzy"]
       gdzie_en: ["on the railing near the bridge", "on the boat deck", "near hatch number three"]
@@ -82,9 +84,9 @@ templates:
 
   - id: przeglad_ratunkowy
     kategoria: rutyna
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: starszy_oficer}
-    miejsca: ["pokład łodziowy"]
-    zglaszajacy: ["trzeci oficer", "marynarz AB"]
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    miejsca: ["Boat deck"]
+    zglaszajacy: ["officer"]
     sloty:
       sprzet: ["łodzi ratunkowej", "tratw ratunkowych", "kół ratunkowych"]
       sprzet_en: ["the lifeboat", "the liferafts", "the lifebuoys"]
@@ -94,18 +96,18 @@ templates:
 
   - id: przekazanie_wachty
     kategoria: rutyna
-    gold: {dzial: pokład, pilnosc: 1, raport_dpa: false, osoba: starszy_oficer}
-    miejsca: ["mostek"]
-    zglaszajacy: ["drugi oficer", "trzeci oficer"]
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    miejsca: ["Bridge"]
+    zglaszajacy: ["officer"]
     teksty:
       pl: ["Wachta przekazana, kurs i prędkość bez zmian, pogoda dobra, nic do zgłoszenia."]
       en: ["Watch handed over, course and speed unchanged, good weather, nothing to report."]
 
   - id: gniazdko_kabina
     kategoria: rutyna
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: elektryk}
-    miejsca: ["nadbudówka — kabiny załogi"]
-    zglaszajacy: ["marynarz AB", "marynarz OS", "pomocnik kucharza"]
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
+    miejsca: ["Accommodation, crew cabins"]
+    zglaszajacy: ["officer"]
     sloty:
       nr: ["dwieście cztery", "trzysta dwanaście", "sto osiem"]
       nr_en: ["two zero four", "three one two", "one zero eight"]
@@ -115,10 +117,10 @@ templates:
 
   - id: lampa_korytarz
     kategoria: rutyna
-    gold: {dzial: maszynownia, pilnosc: 1, raport_dpa: false, osoba: elektryk}
-    miejsca: ["korytarz przy kabinach", "pralnia", "magazyn farb"]
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
+    miejsca: ["Accommodation, corridor", "Accommodation, laundry", "Main deck, paint store"]
     miejsca_wg_slotu: true
-    zglaszajacy: ["marynarz OS", "marynarz AB", "pomocnik kucharza", "drugi oficer"]
+    zglaszajacy: ["officer"]
     sloty:
       miejsce: ["korytarzu przy kabinach", "pralni", "magazynku farb"]
       miejsce_en: ["corridor near the cabins", "laundry", "paint store"]
@@ -128,18 +130,18 @@ templates:
 
   - id: odpady_port
     kategoria: rutyna
-    gold: {dzial: kuchnia, pilnosc: 2, raport_dpa: false, osoba: kucharz}
-    miejsca: ["kuchnia", "magazyn odpadów"]
-    zglaszajacy: ["starszy kucharz", "pomocnik kucharza"]
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}  # gospodarka odpadami: oficer
+    miejsca: ["Galley", "Main deck, garbage store"]
+    zglaszajacy: ["officer"]
     teksty:
       pl: ["Magazyn odpadów prawie pełny, trzeba oddać śmieci w najbliższym porcie."]
       en: ["Garbage store almost full, we need to land the garbage at the next port."]
 
   - id: prowiant_planowo
     kategoria: rutyna
-    gold: {dzial: kuchnia, pilnosc: 2, raport_dpa: false, osoba: kucharz}
-    miejsca: ["magazyn prowiantowy", "kuchnia"]
-    zglaszajacy: ["starszy kucharz"]
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
+    miejsca: ["Galley, provision store", "Galley"]
+    zglaszajacy: ["officer"]
     sloty:
       produkt: ["mąka i ryż", "kawa i herbata", "świeże warzywa"]
       produkt_en: ["flour and rice", "coffee and tea", "fresh vegetables"]
@@ -149,9 +151,9 @@ templates:
 
   - id: ladownia_gotowa
     kategoria: rutyna
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: starszy_oficer}
-    miejsca: ["pokład główny — rejon ładowni"]
-    zglaszajacy: ["bosman", "marynarz AB"]
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
+    miejsca: ["Main deck, hatch area"]
+    zglaszajacy: ["officer"]
     sloty:
       nr: ["jeden", "dwa", "cztery"]
       nr_en: ["one", "two", "four"]
@@ -159,12 +161,55 @@ templates:
       pl: ["Ładownia numer {nr} wyczyszczona i wysuszona, gotowa do inspekcji przed załadunkiem."]
       en: ["Hold number {nr_en} cleaned and dried, ready for inspection before loading."]
 
-  # ---------------------------------------------------------------- USTERKI (pilność 2-3)
+  - id: wirowka_czyszczenie
+    kategoria: rutyna
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
+    miejsca: ["Purifier room"]
+    zglaszajacy: ["2nd_engineer"]
+    teksty:
+      pl: ["Wirówka paliwa numer jeden wyczyszczona, bęben złożony, wróciła do pracy, temperatura na wlocie w normie."]
+      en: ["Fuel oil purifier number one cleaned, bowl reassembled, back in operation, inlet temperature normal."]
+
+  - id: maszyna_sterowa_obchod
+    kategoria: rutyna
+    gold: {dzial: engine, pilnosc: 3, raport_dpa: false, osoba: 2nd_engineer}
+    miejsca: ["Steering gear room"]
+    zglaszajacy: ["2nd_engineer"]
+    teksty:
+      pl: ["Obchód maszyny sterowej zrobiony, poziom oleju hydraulicznego w normie, bez przecieków."]
+      en: ["Steering gear round done, hydraulic oil level normal, no leaks."]
+
+  - id: pomiar_balastu
+    kategoria: rutyna
+    gold: {dzial: deck, pilnosc: 3, raport_dpa: false, osoba: officer}
+    miejsca: ["Ballast tanks, sounding pipes"]
+    zglaszajacy: ["officer"]
+    sloty:
+      nr: ["dwa", "trzy", "cztery"]
+      nr_en: ["two", "three", "four"]
+    teksty:
+      pl: ["Pomiary zbiorników balastowych zrobione, zbiornik {nr} lewy i prawy bez zmian od wczoraj."]
+      en: ["Ballast tank soundings done, tank {nr_en} port and starboard unchanged since yesterday."]
+
+  # ---------------------------------------------------------------- USTERKI (P2-P1)
+  - id: zeza_ladowni
+    kategoria: usterka
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
+    miejsca: ["Cargo hold 1", "Cargo hold 2", "Cargo hold 4"]
+    miejsca_wg_slotu: true
+    zglaszajacy: ["officer"]
+    sloty:
+      nr: ["jeden", "dwa", "cztery"]
+      nr_en: ["one", "two", "four"]
+    teksty:
+      pl: ["W ładowni numer {nr} na zęzie stoi trochę wody, trzeba odpompować przed załadunkiem."]
+      en: ["Some water in the bilge of cargo hold number {nr_en}, needs pumping out before loading."]
+
   - id: czesci_zamowienie
     kategoria: usterka
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: starszy_mechanik}
-    miejsca: ["warsztat maszynowy", "magazyn części"]
-    zglaszajacy: ["drugi mechanik", "trzeci mechanik"]
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: chief_engineer}
+    miejsca: ["Engine room, workshop", "Engine room, spare parts store"]
+    zglaszajacy: ["2nd_engineer"]
     sloty:
       czesc: ["filtrów paliwa", "uszczelek do pompy chłodzenia", "pasków klinowych do sprężarki"]
       czesc_en: ["fuel filters", "seals for the cooling water pump", "V-belts for the compressor"]
@@ -174,9 +219,9 @@ templates:
 
   - id: prowiant_brak
     kategoria: usterka
-    gold: {dzial: kuchnia, pilnosc: 3, raport_dpa: false, osoba: kucharz}
-    miejsca: ["magazyn prowiantowy"]
-    zglaszajacy: ["starszy kucharz"]
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: false, osoba: officer}
+    miejsca: ["Galley, provision store"]
+    zglaszajacy: ["officer"]
     sloty:
       produkt: ["mleka", "jajek", "chleba tostowego"]
       produkt_en: ["milk", "eggs", "toast bread"]
@@ -186,9 +231,9 @@ templates:
 
   - id: chlodnia
     kategoria: usterka
-    gold: {dzial: kuchnia, pilnosc: 3, raport_dpa: false, osoba: kucharz}
-    miejsca: ["chłodnia prowiantowa"]
-    zglaszajacy: ["starszy kucharz", "pomocnik kucharza"]
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: 2nd_engineer}  # zgłasza kuchnia, naprawia maszynownia
+    miejsca: ["Galley, provision cold room"]
+    zglaszajacy: ["officer"]
     sloty:
       temp: ["plus sześć", "plus osiem"]
       temp_en: ["plus six", "plus eight"]
@@ -198,9 +243,9 @@ templates:
 
   - id: alarm_temp_silnik
     kategoria: usterka
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: false, osoba: starszy_mechanik}
-    miejsca: ["centrala maszynowni (ECR)"]
-    zglaszajacy: ["trzeci mechanik", "drugi mechanik", "motorzysta"]
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: false, osoba: chief_engineer}
+    miejsca: ["Engine control room"]
+    zglaszajacy: ["2nd_engineer"]
     sloty:
       cylinder: ["trzecim", "piątym", "szóstym"]
       cylinder_en: ["three", "five", "six"]
@@ -210,10 +255,10 @@ templates:
 
   - id: przetarta_lina
     kategoria: usterka
-    gold: {dzial: pokład, pilnosc: 2, raport_dpa: false, osoba: bosman}
-    miejsca: ["pokład rufowy", "pokład dziobowy"]
+    gold: {dzial: deck, pilnosc: 2, raport_dpa: false, osoba: officer}
+    miejsca: ["Main deck, aft mooring station", "Forecastle"]
     miejsca_wg_slotu: true
-    zglaszajacy: ["marynarz AB", "marynarz OS", "trzeci oficer"]
+    zglaszajacy: ["officer"]
     sloty:
       gdzie: ["na rufie", "na dziobie"]
       gdzie_en: ["on the stern", "on the bow"]
@@ -223,9 +268,9 @@ templates:
 
   - id: wlaz_ladowni
     kategoria: usterka
-    gold: {dzial: pokład, pilnosc: 3, raport_dpa: false, osoba: starszy_oficer}
-    miejsca: ["pokład główny — rejon ładowni"]
-    zglaszajacy: ["bosman", "drugi oficer", "marynarz AB"]
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: false, osoba: officer}
+    miejsca: ["Main deck, hatch area"]
+    zglaszajacy: ["officer"]
     sloty:
       nr: ["jeden", "dwa", "cztery"]
       nr_en: ["one", "two", "four"]
@@ -236,9 +281,9 @@ templates:
   # ---------------------------------------------------------------- ZDARZENIA (rzadkie; raport do DPA)
   - id: wyciek_poslizg
     kategoria: zdarzenie
-    gold: {dzial: maszynownia, pilnosc: 3, raport_dpa: true, osoba: drugi_mechanik}
-    miejsca: ["maszynownia — poziom dolny", "przedział pomp"]
-    zglaszajacy: ["motorzysta", "trzeci mechanik"]
+    gold: {dzial: engine, pilnosc: 1, raport_dpa: true, osoba: 2nd_engineer}
+    miejsca: ["Engine room, lower platform", "Engine room, pump flat"]
+    zglaszajacy: ["2nd_engineer"]
     sloty:
       urzadzenie: ["pompie balastowej numer dwa", "pompie zęzowej", "pompie chłodzenia"]
       urzadzenie_en: ["ballast pump number two", "bilge pump", "cooling water pump"]
@@ -248,9 +293,9 @@ templates:
 
   - id: oparzenie_kuchnia
     kategoria: zdarzenie
-    gold: {dzial: kuchnia, pilnosc: 3, raport_dpa: true, osoba: kucharz}
-    miejsca: ["kuchnia"]
-    zglaszajacy: ["starszy kucharz"]
+    gold: {dzial: deck, pilnosc: 1, raport_dpa: true, osoba: officer}
+    miejsca: ["Galley"]
+    zglaszajacy: ["officer"]
     sloty:
       co: ["olej z frytownicy", "wrzątek z kotła"]
       co_en: ["hot oil from the fryer", "boiling water from the kettle"]

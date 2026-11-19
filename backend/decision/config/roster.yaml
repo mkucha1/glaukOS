@@ -1,27 +1,16 @@
-# Fikcyjna załoga fikcyjnego statku — źródło metadanych "kto zgłosił".
-# Osoby są wymyślone. `jezyk` = język, w którym zwykle nagrywa zgłoszenia.
+# Załoga do metadanych zgłoszeń ("kto zgłosił") = osoby z mozg-statku/server/config/crew.json,
+# które mogą zalogować się we frontendzie (role 2nd_engineer, chief_engineer, officer).
+# `jezyk` = język, w którym zwykle nagrywa zgłoszenia. Osoby fikcyjne.
 
 statek:
-  nazwa: "MV Odra Trader"
-  typ: "masowiec"
-  bandera: "Malta"
+  nazwa: "MV Demo"
+  ship_id: "demo"          # jak SHIP_ID w mozg-statku/docker-compose.yml
 
 zaloga:
-  - {id: C01, imie_nazwisko: "Tomasz Wierzbicki",  stanowisko: "kapitan",           dzial: dowodztwo,   jezyk: pl}
-  - {id: C02, imie_nazwisko: "Paweł Grabowski",    stanowisko: "starszy oficer",    dzial: pokład,      jezyk: pl}
-  - {id: C03, imie_nazwisko: "Oleksandr Kovalenko", stanowisko: "drugi oficer",     dzial: pokład,      jezyk: en}
-  - {id: C04, imie_nazwisko: "Rajesh Nair",        stanowisko: "trzeci oficer",     dzial: pokład,      jezyk: en}
-  - {id: C05, imie_nazwisko: "Jarosław Mazur",     stanowisko: "bosman",            dzial: pokład,      jezyk: pl}
-  - {id: C06, imie_nazwisko: "Ramon dela Cruz",    stanowisko: "marynarz AB",       dzial: pokład,      jezyk: en}
-  - {id: C07, imie_nazwisko: "Jomar Bautista",     stanowisko: "marynarz OS",       dzial: pokład,      jezyk: en}
-  - {id: C08, imie_nazwisko: "Krzysztof Lis",      stanowisko: "starszy mechanik",  dzial: maszynownia, jezyk: pl}
-  - {id: C09, imie_nazwisko: "Dmytro Shevchuk",    stanowisko: "drugi mechanik",    dzial: maszynownia, jezyk: en}
-  - {id: C10, imie_nazwisko: "Adam Krawczyk",      stanowisko: "trzeci mechanik",   dzial: maszynownia, jezyk: pl}
-  - {id: C11, imie_nazwisko: "Marek Sobczak",      stanowisko: "elektryk",          dzial: maszynownia, jezyk: pl}
-  - {id: C12, imie_nazwisko: "Arnel Santos",       stanowisko: "motorzysta",        dzial: maszynownia, jezyk: en}
-  - {id: C13, imie_nazwisko: "Piotr Wójcik",       stanowisko: "motorzysta",        dzial: maszynownia, jezyk: pl}
-  - {id: C14, imie_nazwisko: "Edwin Reyes",        stanowisko: "starszy kucharz",   dzial: kuchnia,     jezyk: en}
-  - {id: C15, imie_nazwisko: "Mark Villanueva",    stanowisko: "pomocnik kucharza", dzial: kuchnia,     jezyk: en}
+  - {crew_id: tom,     imie: "Tom",     rola: 2nd_engineer,   stopien: 2nd_engineer,  dzial: engine, jezyk: en}
+  - {crew_id: anna,    imie: "Anna",    rola: chief_engineer, stopien: chief_engineer, dzial: engine, jezyk: pl}
+  - {crew_id: ivan,    imie: "Ivan",    rola: officer,        stopien: chief_officer, dzial: deck,   jezyk: en}
+  - {crew_id: kapitan, imie: "Captain", rola: officer,        stopien: master,        dzial: deck,   jezyk: pl}
 
 # Skąd zgłoszenie mogło zostać nadane
-urzadzenia: ["telefon", "telefon", "telefon", "terminal ECR", "panel na mostku"]
+urzadzenia: ["phone", "phone", "phone", "ecr-terminal", "bridge-tablet"]

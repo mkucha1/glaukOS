@@ -1,42 +1,75 @@
 # backend/decision — warstwa decyzyjna (Basal)
 
 Środowisko do sprawdzenia, jak model decyzyjny [Basal 2.0](https://github.com/rkinas/basal) (domyślnie `basal-2.0-4.5B`)
-rozdziela zgłoszenia załogi statku: **dział**, **pilność (1–3)**, **czy raport do DPA** i **kto ma się zająć**.
+rozdziela zgłoszenia załogi statku: **dział**, **priorytet P1–P3 (1 = najwyższy)**, **czy raport do DPA** i **kto ma się zająć**.
 
 **Cel aplikacji: oszczędzać czas załogi przy codziennych raportach.** Groźne, rzadkie zdarzenia obsługują
 alarmy i radio, nie aplikacja. Dlatego dane testowe to w ok. 80% raporty rutynowe (obchody, pomiary, wykonane
 prace, zapasy), ok. 15% usterki i ok. 5% zdarzenia do raportu DPA (*Designated Person Ashore* — osoba wyznaczona
 na lądzie wg Kodeksu ISM).
 
-Pilność (1–3) decyduje o kolejności obsługi i wysyłki na ląd po złapaniu łącza. Nie wymaga zatwierdzania:
+Priorytet (P1–P3, jak we frontendzie) decyduje o kolejności obsługi i wysyłki na ląd po złapaniu łącza. Nie wymaga zatwierdzania:
 pomyłka oznacza tylko trochę późniejszą wysyłkę, a raporty do DPA kod zawsze stawia na początku kolejki.
 
 To jest szkielet: szablony zgłoszeń, generator, ewaluacja i kolejka. Rozbudowujemy go razem.
 
-## Miejsce w systemie Mózg statku
+## Połączenie z serwerem pokładowym (`mozg-statku/`)
 
 ```
-report.transcribed ──> warstwa porządkująca tekst ──> decide() (ten moduł) ──> propozycja dla oficera
-   (speech/)            (osobny moduł backendu)        dział, pilność,         ReportForm.priority,
-                                                       raport DPA, osoba       assignee
+POST /api/reports/text|audio ─> stt ─> refine (Daniel) ─> brain.structure ─> brain.check ─> oficer / auto
+                                                                               │
+                                                     plugins/decision.py ──────┘  POST /v1/systemone
+                                                     (Basal: dział, pilność,          basal-serve :8001
+                                                      raport DPA, osoba)
 ```
 
-Model dostaje **tylko treść** zgłoszenia i zamkniętą listę opcji; zwraca wybór i pewność.
-Poniżej progu pewności decyzja trafia do zatwierdzenia przez oficera (`needs_review`).
-Wspólnych kontraktów (`frontend/CLAUDE.md` sekcja 6, `frontend/src/types.ts`) nie zmieniamy —
-tłumaczy na nie `src/shipdec/contract.py`:
+- **Wpięcie:** `mozg-statku/server/plugins/brain.py: check()` — reguły z zaślepki (czujniki, pytania zwrotne)
+  plus `plugins/decision.py`, który pyta Basala o **samą treść** zgłoszenia i wypełnia pola `Decision`
+  (`mozg-statku/server/app/contracts.py`). Kontrakty bez zmian.
+- **Gdy jest pytanie zwrotne,** Basal czeka na odpowiedź człowieka (potem dostaje treść + odpowiedź).
+- **Gdy Basal nie odpowiada,** zostaje decyzja z reguł i notatka `basal unavailable` — zgłoszenie idzie dalej.
+- **Jedno źródło reguł:** pytania, progi i mapowania są tutaj (`config/`, `src/shipdec/contract.py`);
+  `shipdec export-server-config` zapisuje je do `mozg-statku/server/config/decision.json` (test pilnuje aktualności).
 
-| nasze pole | kontrakt | mapowanie (do potwierdzenia z zespołem) |
+| pole `Decision` | skąd | reguła |
 |---|---|---|
-| pilność 1–3 (3 = pilne) | `ReportForm.priority` 1–5 (1 = najpilniejsze) | 3→1, 2→3, 1→5; raport DPA → 1 |
-| osoba | `assignee` (rola jak w `actor`) | drugi_mechanik→`2nd_engineer`, starszy_mechanik→`chief_engineer`, starszy_oficer→`officer`, bosman→`bosun`, elektryk→`eto`, kucharz→`cook` |
+| `priority` P1–P3 (1 = najwyższy, jak we frontendzie) | pytanie `pilnosc` | pilne → 1, w najbliższych dniach → 2, rutyna → 3; raport DPA → 1 |
+| `alarm` | reguły serwera | `true` tylko przy pożarze/dymie → `ship/{id}/bridge/alert`; wtedy P1 i oficer |
+| `dept` | pytanie `dzial` | `engine` (→ temat `ship/{id}/eng/new`) albo `deck` (reszta statku pod oficerem) |
+| `route_role` | dział | engine → `chief_engineer`, deck → `officer` (role z frontendu) |
+| `assignee` | pytanie `osoba` | rola z frontendu → `crew_id` z `crew.json`: 2nd_engineer → tom, chief_engineer → anna, officer → ivan |
+| `form.location` | pytanie `sektor` | jeden z 4 sektorów demo: Engine room, Main deck, Galley & mess, Bridge; wpisywana w `structure()`, gdy pewność ≥ 0,5 i nie rozpoznano konkretnego urządzenia |
+| `needs_officer` | pewność | `true`, gdy dział/osoba/DPA poniżej progu, niezgodność z czujnikiem albo alarm |
 
-```python
-from shipdec.backends import get_backend
-from shipdec.contract import decide
-out = decide("Pompa chłodzenia nr 2, przeciek na uszczelnieniu", get_backend("basal"))
-# out["priority"], out["assignee_role"], out["needs_review"], out["decisions"]
+### Uruchomienie razem z serwerem
+
+```bash
+# 1. Basal na Macu (środowisko tworzy raz ./scripts/run_on_mac.sh)
+./scripts/serve_mac.sh                 # serwer mozg-statku w Pythonie
+DOCKER=1 ./scripts/serve_mac.sh        # serwer mozg-statku w Dockerze (BASAL_URL w docker-compose.yml)
+
+# 2. serwer pokładowy (mozg-statku/README.md, tryb A albo B)
+
+# 3. zgłoszenia testowe do serwera
+shipdec realistic && shipdec push --data-dir data/realistic --server http://127.0.0.1:8000
+shipdec push --limit 20                # syntetyczne
 ```
+
+Porty: API serwera **8000**, Basal **8001**, Ollama 11434.
+
+## Statek: sektory i załoga
+
+- **Sektory demo:** zgłoszenia trafiają tylko do 4 sektorów przekroju statku z frontendu —
+  `engine` (Engine room, z ECR, wirówkami i maszyną sterową), `deck` (Main deck, z dziobem, ładowniami
+  i balastem), `galley` (Galley & mess, z kabinami), `bridge` (Bridge). Lokalizacje w danych są po angielsku
+  i szczegółowe; `_meta.sector` i etykieta `sektor` to już jeden z 4 (`src/shipdec/ship.py`: `SECTOR_MERGE`).
+- **Role** jak we frontendzie (`frontend/src/types.ts`): `2nd_engineer`, `chief_engineer`, `officer` — tylko
+  w nich da się zalogować, więc tylko oni zgłaszają i dostają zadania (`config/roster.yaml`: tom, anna, ivan,
+  kapitan; ten sam `role` co w `crew.json` serwera, stopień w polu `rank`). Działy: `engine` i `deck`.
+- **Kuchnia** jest na przekroju jako pomieszczenie („Galley & mess”), ale nie ma roli — zgłoszenia z kuchni
+  (prowiant, chłodnie, odpady) trafiają do oficera albo, gdy trzeba naprawić sprzęt, do maszynowni.
+  Elektryka (ETO) też nie ma: sprawy elektryczne przejmuje 2nd_engineer.
+- Zgłoszenia są **niezależne** — dane nie zawierają powiązań między zgłoszeniami.
 
 ## Konfiguracja (`.env`)
 
@@ -51,16 +84,15 @@ poleceniami `shipdec generate` i `shipdec realistic`.
 ## Struktura
 
 ```
-config/questions.yaml        pytania do modelu (format API /v1/systemone) + progi pewności
-config/crew.yaml             role na statku (odpowiedzi na pytanie "kto")
-config/roster.yaml           fikcyjna załoga i statek (źródło metadanych "kto zgłosił")
-data/templates/reports.yaml  szablony zgłoszeń z poprawnymi odpowiedziami (gold)
-data/synthetic/reports/      wygenerowane zgłoszenia, jeden plik JSON na zgłoszenie
-data/synthetic/labels.jsonl  poprawne odpowiedzi do ewaluacji (osobno od zgłoszeń)
-results/                     wyniki modelu + podsumowanie
-src/shipdec/                 generator, backendy (Basal / atrapa), ewaluacja, CLI
-scripts/                     instalacja i start serwera Basala
-tests/                       testy potoku na atrapie (bez GPU)
+config/questions.yaml        pytania do Basala (dzial, pilnosc P1-P3, raport_dpa, sektor, osoba) + progi pewności
+config/crew.yaml             role z frontendu do pytania `osoba` -> crew_id z mozg-statku/server/config/crew.json
+config/roster.yaml           kto zgłasza: osoby z crew.json w rolach z frontendu
+data/templates/reports.yaml  szablony zgłoszeń (80% rutyna), lokalizacje zgodne z sektorami frontendu
+data/realistic/utterances.yaml  63 nieczyste wypowiedzi + wzorcowe streszczenia
+src/shipdec/                 generate, realistic, evaluate, queue, backends (Basal/atrapa), cli,
+                             contract (-> Decision serwera), ship (sektory), server (push), settings (.env)
+scripts/                     run_on_mac.sh (ewaluacja), serve_mac.sh (Basal dla serwera), setup/serve (Linux)
+tests/                       testy na atrapie (bez GPU), w tym zgodność z frontendem i serwerem
 ```
 
 ## Realistyczne wypowiedzi (`data/realistic/`)
@@ -82,28 +114,29 @@ DATA=realistic ./scripts/run_on_mac.sh      # Basal na surowych wypowiedziach
 
 ## Format zgłoszenia
 
-Każde zgłoszenie to osobny plik `data/synthetic/reports/<id>.json`, tak jakby przyszło z aplikacji:
+Każde zgłoszenie to osobny plik `data/.../reports/<report_id>.json` w formacie wejścia serwera
+(`POST /api/reports/text`) + metadane w `_meta` (pola z `_` zostają na statku, nie są wysyłane):
 
-```json
+```jsonc
 {
-  "schema_version": "0.1",
-  "id": "ZGL-20261110-0018",
-  "statek": "MV Odra Trader",
-  "czas_utc": "2026-11-10T18:17:57+00:00",
-  "wachta": "16-20",
-  "zglaszajacy": {"id": "C04", "imie_nazwisko": "Rajesh Nair", "stanowisko": "trzeci oficer", "dzial": "pokład"},
-  "lokalizacja": "pokład rufowy",
-  "kanal": "glos",
-  "urzadzenie": "telefon",
-  "jezyk": "en",
-  "nagranie_s": 6.2,
-  "tresc": "Mooring line on the stern is badly worn, it almost snapped during berthing."
+  "schema_version": "0.2",
+  "report_id": "3f0c…",                     // UUID, nadany „na urządzeniu”
+  "crew_id": "marek",
+  "text": "yyy zęzy w maszynowni wypompowane do zbiornika zęzowego, …",
+  "lang": "pl",
+  "recorded_at": "2026-11-03T04:12:55+00:00",
+  "device": "phone",
+  "_meta": {
+    "ship": "MV Demo", "ship_id": "demo", "watch": "04-08",
+    "reporter": {"crew_id": "marek", "name": "Marek", "role": "motorman", "dept": "engine"},
+    "location": "Engine room, lower platform", "sector": "engine",
+    "channel": "voice", "audio_s": 14.2
+  }
 }
 ```
 
-**Basal dostaje tylko pole `tresc`** oraz opcje z `config/questions.yaml`. Metadane nie trafiają do modelu
-(pilnuje tego test `test_model_gets_only_report_text`). Poprawne odpowiedzi są w `labels.jsonl`, nie w plikach
-zgłoszeń — ten plik jest też indeksem: ewaluacja bierze tylko zgłoszenia w nim wymienione.
+**Basal dostaje tylko pole `text`** oraz opcje z `config/questions.yaml` (pilnuje tego test).
+Poprawne odpowiedzi są w `labels.jsonl` (nie w plikach zgłoszeń) — to też indeks zbioru.
 Osoby i statek są fikcyjne.
 
 ## Szybki start bez GPU (atrapa modelu)
@@ -140,12 +173,12 @@ a kilka pytań o to samo zgłoszenie liczy się razem (stan liczony raz).
 
 ```bash
 ./scripts/setup_basal.sh            # torch (CUDA 12.8) + basal + ten projekt + pobranie wag
-./scripts/serve_basal.sh            # terminal 1: serwer na :8000
+./scripts/serve_basal.sh            # terminal 1: serwer na :8001
 shipdec evaluate --backend basal    # terminal 2
 ```
 
 Na karcie Hopper/Blackwell: `MODE=fp8 MODEL=Remek/basal-2.0-4.5B-FP8 ./scripts/serve_basal.sh`.
-Serwer może też stać na innym komputerze: `shipdec evaluate --url http://<adres>:8000/v1/systemone`.
+Serwer może też stać na innym komputerze: `shipdec evaluate --url http://<adres>:8001/v1/systemone`.
 
 ## Co mierzymy
 

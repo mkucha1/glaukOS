@@ -12,7 +12,7 @@ from .config import api_questions
 class BasalHTTP:
     """Klient serwera `basal-serve` (POST /v1/systemone)."""
 
-    def __init__(self, url: str = "http://127.0.0.1:8000/v1/systemone", timeout: float = 600.0):
+    def __init__(self, url: str = "http://127.0.0.1:8001/v1/systemone", timeout: float = 600.0):
         self.url = url
         self.timeout = timeout
 
@@ -59,6 +59,10 @@ class MockBackend:
             elif q["type"] == "score":
                 keys = [str(i) for i in range(len(q["criteria"]))]
                 fav = self.rng.choice(keys)
+            elif name == "sektor":
+                from .ship import main_sector, sector_of
+                keys = list(q["criteria"].keys())
+                fav = main_sector(sector_of(low))
             else:
                 keys = list(q["criteria"].keys())
                 fav = next((d for d, ws in self.KEYWORDS.items() if d in keys and any(w in low for w in ws)), None)

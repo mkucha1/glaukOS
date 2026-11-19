@@ -1,65 +1,92 @@
-"""Most między warstwą decyzyjną a wspólnymi kontraktami zespołu (frontend/CLAUDE.md, sekcja 6; src/types.ts).
+"""Most między warstwą decyzyjną a serwerem pokładowym (mozg-statku/server, gałąź offline).
 
-Kontraktów NIE zmieniamy. Ten moduł tłumaczy odpowiedzi Basala na pola, które już istnieją:
-  - ReportForm.priority (1-5, 1 = najpilniejsze; front traktuje P1-P2 jako "wymaga działania")
-  - ApprovedPayload.assignee / TaskAssignedPayload.assignee (string; rola jak w `actor` "{role}:{imię}")
+Serwer woła plugin `server/plugins/brain.py: check(form, sensors, context) -> Decision`
+(model: mozg-statku/server/app/contracts.py). Basal wypełnia w nim:
+  - priority     1-3 jak we frontendzie: 1 = najwyższy (P1). Raport do DPA zawsze P1.
+                 Alarm na mostek to osobna flaga `alarm` z reguł (pożar, dym), nie priorytet.
+  - dept         "engine" (-> temat ship/{id}/eng/new) albo "deck" (reszta statku pod oficerem)
+  - route_role   kto zatwierdza -> temat role/{route_role}/approve; role z frontendu
+  - assignee     crew_id z server/config/crew.json — komu przydzielić zadanie przy auto-zatwierdzeniu
+  - needs_officer True, gdy któraś decyzja ma pewność poniżej progu (priorytet nie jest bramkowany)
 
-Kolejność w backendzie (plan): report.transcribed -> warstwa porządkująca tekst (osobny moduł)
--> decide() na uporządkowanym tekście -> propozycja priorytetu i osoby -> oficer zatwierdza.
+Ten moduł jest jedynym źródłem tych reguł: `shipdec export-server-config` zapisuje je do
+mozg-statku/server/config/decision.json, który czyta plugin serwera (bez zależności od tego pakietu).
 
-DO POTWIERDZENIA Z ZESPOŁEM: mapowanie pilności 1-3 na priorytet 1-5 i nazwy ról spoza `Role` w types.ts.
 """
 from __future__ import annotations
 
-from .config import api_questions, load_questions
-from .evaluate import predicted_key
+import json
+from pathlib import Path
+
+from .ship import MAIN_SECTORS, SECTOR_LABELS
 from . import settings
+from .config import ROOT, api_questions, load_crew, load_questions
+from .evaluate import predicted_key
 
-# Nasza pilność 1-3 (3 = pilne) -> ReportForm.priority 1-5 (1 = najpilniejsze).
-PRIORITY_FROM_PILNOSC = {3: 1, 2: 3, 1: 5}
-DPA_PRIORITY = 1  # raport do DPA zawsze na górę (spójne z shipdec/queue.py)
-
-# Klucze `osoba` z config/crew.yaml -> rola w konwencji actor/assignee.
-# Pierwsze trzy istnieją w Role (types.ts); pozostałe to propozycja rozszerzenia.
-ROLE_FROM_OSOBA = {
-    "drugi_mechanik": "2nd_engineer",
-    "starszy_mechanik": "chief_engineer",
-    "starszy_oficer": "officer",
-    "bosman": "bosun",
-    "elektryk": "eto",
-    "kucharz": "cook",
-}
+# Poziom ze skali Basala (pytanie `pilnosc`, 1 = najniższy) -> priorytet P (1 = najwyższy, jak we frontendzie).
+PRIORITY_FROM_LEVEL = {1: 3, 2: 2, 3: 1}
+DPA_PRIORITY = 1                     # raport do DPA na górę kolejki (ale to nie alarm na mostek)
+ROUTE_ROLE = {"engine": "chief_engineer", "deck": "officer"}   # role z frontendu
+SECTOR_MIN_CONF = 0.5   # od tej pewności serwer wpisuje sektor do formularza (location), inaczej zostaje z reguł
+# Serwer zespołu (gałąź `offline`) — gdy go nie ma w repo, kopia w integration/mozg-statku/.
+_SERVER_CONFIG_DIR = ROOT.parents[1] / "mozg-statku" / "server" / "config"
+SERVER_CONFIG = (_SERVER_CONFIG_DIR if _SERVER_CONFIG_DIR.is_dir() else ROOT / "integration" / "mozg-statku") / "decision.json"
 
 
-def decide(text: str, backend, questions: dict | None = None, thresholds: dict | None = None) -> dict:
-    """Jedno zgłoszenie (sama treść) -> decyzje Basala + pola do kontraktu.
+def assignees() -> dict[str, str]:
+    """rola (klucz pytania `osoba`) -> crew_id."""
+    return {role: d["crew_id"] for role, d in load_crew().items()}
 
-    `backend` to obiekt z metodą decide(state, questions), np. shipdec.backends.BasalHTTP.
-    """
-    if questions is None or thresholds is None:
-        questions, thresholds = load_questions(settings.questions_path())
-    resp = backend.decide(text, questions)
-    answers = resp["answers"]
-    decisions, needs_review = {}, []
+
+def to_decision(answers: dict, thresholds: dict, assignee_by_role: dict[str, str] | None = None) -> dict:
+    """Odpowiedzi Basala (`answers` z /v1/systemone) -> pola Decision serwera."""
+    assignee_by_role = assignee_by_role or assignees()
+    picked, needs_review = {}, []
     for name, ans in answers.items():
         key = predicted_key(ans)
         conf = float(ans["confidence"])
-        decisions[name] = {"value": key, "confidence": round(conf, 4)}
+        picked[name] = {"value": key, "confidence": round(conf, 4)}
         if conf < thresholds.get(name, thresholds.get("default", 0.8)):
             needs_review.append(name)
-
-    pilnosc = int(decisions["pilnosc"]["value"]) + 1
-    dpa = decisions["raport_dpa"]["value"] == "true"
+    dept = picked["dzial"]["value"]
+    level = int(picked["pilnosc"]["value"]) + 1
+    dpa = picked["raport_dpa"]["value"] == "true"
+    role = picked["osoba"]["value"]
     return {
-        "decisions": decisions,                 # surowe odpowiedzi: dzial, pilnosc (klucz 0-2), raport_dpa, osoba
-        "needs_review": needs_review,           # pytania poniżej progu -> do zatwierdzenia przez oficera
-        "priority": DPA_PRIORITY if dpa else PRIORITY_FROM_PILNOSC[pilnosc],   # -> ReportForm.priority
-        "assignee_role": ROLE_FROM_OSOBA.get(decisions["osoba"]["value"], decisions["osoba"]["value"]),
-        "department": decisions["dzial"]["value"],
-        "dpa_report": dpa,
-        "model": resp.get("model"),
-        "latency_ms": resp.get("usage", {}).get("latency_ms"),
+        "priority": DPA_PRIORITY if dpa else PRIORITY_FROM_LEVEL[level],
+        "dept": dept,
+        "route_role": ROUTE_ROLE.get(dept, "chief_engineer"),
+        "assignee": assignee_by_role.get(role),
+        "sector": picked["sektor"]["value"] if "sektor" in picked else None,
+        "needs_officer": bool(needs_review),
+        "notes": [f"basal: {n}={v['value']} ({v['confidence']:.2f})" for n, v in picked.items()],
+        "_basal": {"decisions": picked, "needs_review": needs_review, "dpa_report": dpa, "assignee_role": role},
     }
 
 
-__all__ = ["decide", "PRIORITY_FROM_PILNOSC", "ROLE_FROM_OSOBA", "api_questions"]
+def decide(text: str, backend, questions: dict | None = None, thresholds: dict | None = None) -> dict:
+    """Jedno zgłoszenie (sama treść) -> pola Decision. `backend` ma metodę decide(state, questions)."""
+    if questions is None or thresholds is None:
+        questions, thresholds = load_questions(settings.questions_path())
+    return to_decision(backend.decide(text, questions)["answers"], thresholds)
+
+
+def server_config() -> dict:
+    questions, thresholds = load_questions(settings.questions_path())
+    return {
+        "_note": "Wygenerowane: cd backend/decision && shipdec export-server-config. Nie edytuj ręcznie.",
+        "questions": api_questions(questions),
+        "thresholds": thresholds,
+        "priority_from_level": {str(k): v for k, v in PRIORITY_FROM_LEVEL.items()},
+        "dpa_priority": DPA_PRIORITY,
+        "route_role": ROUTE_ROLE,
+        "assignee": assignees(),
+        "sector_labels": {k: SECTOR_LABELS[k] for k in MAIN_SECTORS},
+        "sector_min_conf": SECTOR_MIN_CONF,
+    }
+
+
+def export_server_config(path: str | Path = SERVER_CONFIG) -> Path:
+    path = Path(path)
+    path.write_text(json.dumps(server_config(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path

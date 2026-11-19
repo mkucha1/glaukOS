@@ -17,7 +17,7 @@ if [[ -f .env ]]; then set -a; source .env; set +a; fi
 [[ -n "${HF_TOKEN:-}" ]] || unset HF_TOKEN
 MODEL="${MODEL:-${BASAL_MODEL:-Remek/basal-2.0-4.5B-MLX-8bit}}"
 LIMIT="${LIMIT:-50}"
-PORT="${PORT:-${BASAL_PORT:-8000}}"
+PORT="${PORT:-${BASAL_PORT:-8001}}"
 ENV_DIR="${ENV_DIR:-.venv-mlx}"
 BASAL_VERSION="${BASAL_VERSION:-v2.8.1}"
 PY="cpython-3.12-macos-aarch64-none"          # natywny Python arm64 (nie x86_64 pod Rosettą)

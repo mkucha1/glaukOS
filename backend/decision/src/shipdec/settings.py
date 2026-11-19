@@ -12,8 +12,8 @@ from .config import ROOT
 ENV_FILE = ROOT / ".env"
 
 DEFAULTS = {
-    "SHIP_ID": "demo-ship",
-    "BASAL_URL": "http://127.0.0.1:8000/v1/systemone",
+    "SHIP_ID": "demo",
+    "BASAL_URL": "http://127.0.0.1:8001/v1/systemone",
     "BASAL_TIMEOUT": "600",
     "BASAL_MODEL": "Remek/basal-2.0-4.5B-MLX-8bit",
     "DECISION_QUESTIONS": "config/questions.yaml",

@@ -1,6 +1,6 @@
 """Uruchamia model na zgłoszeniach i liczy wyniki.
 
-Model dostaje WYŁĄCZNIE treść zgłoszenia (`tresc`) i listę opcji z config/questions.yaml.
+Model dostaje WYŁĄCZNIE treść zgłoszenia (`text`) i listę opcji z config/questions.yaml.
 Metadane (kto, skąd, kiedy) nie trafiają do modelu.
 
 Kluczowa miara: przy danym progu pewności — jaki odsetek decyzji przechodzi
@@ -14,7 +14,7 @@ from collections import defaultdict
 
 from .config import gold_key
 
-MODEL_INPUT_FIELD = "tresc"
+MODEL_INPUT_FIELD = "text"
 
 
 def predicted_key(ans: dict) -> str:
@@ -24,14 +24,15 @@ def predicted_key(ans: dict) -> str:
 
 def run(reports: list[dict], labels: list[dict], questions: dict, backend,
         progress: bool = False) -> list[dict]:
-    gold_by_id = {lab["id"]: lab for lab in labels}
+    gold_by_id = {lab["report_id"]: lab for lab in labels}
     results = []
     for i, r in enumerate(reports, 1):
-        lab = gold_by_id[r["id"]]
+        lab = gold_by_id[r["report_id"]]
         t0 = time.perf_counter()
         resp = backend.decide(r[MODEL_INPUT_FIELD], questions)
-        row = {"id": r["id"], "template": lab["template"], "kategoria": lab.get("kategoria"),
-               "czas_utc": r.get("czas_utc"), "tresc": r[MODEL_INPUT_FIELD],
+        row = {"report_id": r["report_id"], "template": lab["template"], "kategoria": lab.get("kategoria"),
+               "recorded_at": r.get("recorded_at"), "sector": (r.get("_meta") or {}).get("sector"),
+               "text": r[MODEL_INPUT_FIELD],
                "latency_ms": resp.get("usage", {}).get("latency_ms"), "decisions": {}}
         for name, q in questions.items():
             ans = resp["answers"][name]
@@ -42,7 +43,7 @@ def run(reports: list[dict], labels: list[dict], questions: dict, backend,
         results.append(row)
         if progress:
             ok = sum(d["correct"] for d in row["decisions"].values())
-            print(f"[{i}/{len(reports)}] {r['id']}  {ok}/{len(questions)} trafnych  "
+            print(f"[{i}/{len(reports)}] {r['report_id'][:8]}  {ok}/{len(questions)} trafnych  "
                   f"{time.perf_counter() - t0:.1f}s", file=sys.stderr, flush=True)
     return results
 
@@ -85,7 +86,8 @@ def summarize_reports(results: list[dict], thresholds: dict) -> dict:
         if not pending:
             auto += 1
             cat["auto"] += 1
-            auto_err += not all(d["correct"] for d in row["decisions"].values())
+            # Sektor tylko ustawia kropkę na mapie — jego pomyłka nie psuje przydziału.
+            auto_err += not all(d["correct"] for k, d in row["decisions"].items() if k != "sektor")
     return {
         "zgloszen": n,
         "w_pelni_automatycznie": auto / n if n else 0.0,
