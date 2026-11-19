@@ -1,0 +1,117 @@
+// EventBus: MQTT.js over WebSocket, or the in-browser mock.
+import mqtt, { type MqttClient } from 'mqtt';
+import { config } from '../config';
+import { isDeadZone, mockServer } from './mock';
+import { actorOf, deviceId, type Profile } from './profile';
+import type { ShipEvent } from '../types';
+
+export type BusState = 'connecting' | 'connected' | 'offline';
+
+export interface EventBus {
+  start(profile: Profile | null): void;
+  stop(): void;
+  onEvent(h: (e: ShipEvent) => void): () => void;
+  onState(h: (s: BusState) => void): () => void;
+  readonly state: BusState;
+}
+
+abstract class BaseBus implements EventBus {
+  protected eventHandlers = new Set<(e: ShipEvent) => void>();
+  protected stateHandlers = new Set<(s: BusState) => void>();
+  state: BusState = 'offline';
+
+  abstract start(profile: Profile | null): void;
+  abstract stop(): void;
+
+  onEvent(h: (e: ShipEvent) => void) {
+    this.eventHandlers.add(h);
+    return () => {
+      this.eventHandlers.delete(h);
+    };
+  }
+  onState(h: (s: BusState) => void) {
+    this.stateHandlers.add(h);
+    h(this.state);
+    return () => {
+      this.stateHandlers.delete(h);
+    };
+  }
+  protected setState(s: BusState) {
+    if (s === this.state) return;
+    this.state = s;
+    this.stateHandlers.forEach((h) => h(s));
+  }
+  protected dispatch(e: ShipEvent) {
+    this.eventHandlers.forEach((h) => h(e));
+  }
+}
+
+/** Without a profile (overview kiosk) only the ship-wide stream is needed. */
+export const topicsFor = (p: Profile | null) =>
+  p ? [`ship/${config.shipId}/events`, `person/${actorOf(p)}`, `role/${p.role}/approve`] : [`ship/${config.shipId}/events`];
+
+class MqttBus extends BaseBus {
+  private client: MqttClient | null = null;
+  private topics: string[] = [];
+
+  start(profile: Profile | null) {
+    this.stop();
+    this.topics = topicsFor(profile);
+    this.setState('connecting');
+    const client = mqtt.connect(config.mqttUrl, {
+      clientId: `shipbrain-${deviceId()}`,
+      clean: false, // persistent session: broker keeps QoS1 messages while we are in a dead zone
+      reconnectPeriod: 2000,
+      connectTimeout: 5000,
+      keepalive: 20,
+    });
+    this.client = client;
+    client.on('connect', () => {
+      client.subscribe(this.topics, { qos: 1 }, (err) => err && console.error('[mqtt] subscribe', err));
+      this.setState('connected');
+    });
+    client.on('reconnect', () => this.setState('connecting'));
+    client.on('offline', () => this.setState('offline'));
+    client.on('close', () => this.state === 'connected' && this.setState('offline'));
+    client.on('error', (err) => console.warn('[mqtt]', err.message));
+    client.on('message', (_topic, buf) => {
+      try {
+        this.dispatch(JSON.parse(buf.toString()) as ShipEvent);
+      } catch (err) {
+        console.warn('[mqtt] bad message', err);
+      }
+    });
+  }
+
+  stop() {
+    if (!this.client) return;
+    const c = this.client;
+    this.client = null;
+    if (c.connected && this.topics.length) c.unsubscribe(this.topics);
+    c.end(true);
+    this.setState('offline');
+  }
+}
+
+class MockBus extends BaseBus {
+  private unsub: (() => void) | null = null;
+  private timer: ReturnType<typeof setInterval> | null = null;
+
+  start() {
+    this.stop();
+    this.unsub = mockServer.subscribe((e) => this.dispatch(e));
+    const check = () => this.setState(navigator.onLine && !isDeadZone() ? 'connected' : 'offline');
+    check();
+    this.timer = setInterval(check, 1000);
+  }
+
+  stop() {
+    this.unsub?.();
+    this.unsub = null;
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    this.setState('offline');
+  }
+}
+
+export const bus: EventBus = config.mock ? new MockBus() : new MqttBus();

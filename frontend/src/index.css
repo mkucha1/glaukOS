@@ -1,0 +1,239 @@
+@import 'tailwindcss';
+
+/* ---------- Design tokens: Ship Brain palette ---------- */
+@theme {
+  --color-ink: #000000;
+  --color-navy: #122c4f; /* primary surface */
+  --color-navy-deep: #0c1f39; /* navy mixed toward ink: wells, water */
+  --color-navy-raised: #183a63; /* navy mixed toward steel: raised surfaces */
+  --color-cream: #fbf9e4; /* text, primary actions, hull lines */
+  --color-steel: #5b88b2; /* secondary */
+  /* semantic, tuned to sit on navy */
+  --color-alert: #ef5a4c;
+  --color-warn: #f0b952;
+  --color-ok: #6cc59a;
+
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+:root {
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  background: var(--color-navy);
+  color: var(--color-cream);
+  overscroll-behavior-y: none;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01', 'tnum';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-steel);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-cream);
+  outline-offset: 2px;
+}
+
+/* Prevent iOS zoom on input focus */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* ---------- Interaction primitives ---------- */
+
+/* Every pressable thing answers the finger. */
+.press {
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Content swap: short rise + fade. Used when the focus panel changes. */
+.enter {
+  transition:
+    opacity 220ms var(--ease-out),
+    transform 260ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Popover: scales from its trigger (top-right), never from scale(0). */
+.popover {
+  transform-origin: top right;
+  transition:
+    opacity 150ms var(--ease-out),
+    transform 180ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+
+/* ---------- Push-to-talk ---------- */
+.ptt {
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+.ptt:active {
+  transform: scale(0.985);
+}
+
+/* ---------- Ship map ---------- */
+.sector {
+  fill: transparent;
+  transition: fill 160ms ease;
+  cursor: pointer;
+}
+.sector[data-alert='true'] {
+  fill: color-mix(in srgb, var(--color-alert) 9%, transparent);
+}
+.sector[data-active='true'] {
+  fill: color-mix(in srgb, var(--color-steel) 26%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .sector:hover {
+    fill: color-mix(in srgb, var(--color-steel) 16%, transparent);
+  }
+}
+
+.pin {
+  transform-origin: 50% 100%; /* scale from the tip that touches the ship */
+  transition:
+    transform 200ms var(--ease-out),
+    opacity 200ms ease;
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.9);
+  }
+}
+.pin[data-dim='true'] {
+  opacity: 0.22;
+}
+.pin[data-selected='true'] {
+  transform: scale(1.18);
+  z-index: 5;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pin:hover {
+    transform: scale(1.1);
+    z-index: 6;
+  }
+  .pin[data-selected='true']:hover {
+    transform: scale(1.18);
+  }
+}
+
+.pin-tip {
+  transform-origin: 50% 50%;
+  transition:
+    opacity 125ms var(--ease-out),
+    transform 125ms var(--ease-out);
+  opacity: 0;
+  transform: translateY(4px) scale(0.97);
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pin:hover .pin-tip {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Attention ring on pins that need action: state indication, not decoration. */
+.pulse::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 22px;
+  height: 10px;
+  margin-left: -11px;
+  border-radius: 50%;
+  border: 2px solid var(--color-alert);
+  animation: pulse 1.8s var(--ease-out) infinite;
+}
+@keyframes pulse {
+  from {
+    opacity: 0.9;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+/* Connection lines draw in from the selected node. */
+.link {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 520ms var(--ease-out);
+  @starting-style {
+    stroke-dashoffset: 1;
+  }
+}
+
+.bar-grow {
+  transform-origin: left center;
+  transition: transform 700ms var(--ease-out);
+  @starting-style {
+    transform: scaleX(0.02);
+  }
+}
+
+@media (max-width: 640px) {
+  .sector-label {
+    display: none;
+  }
+}
+
+/* Reduced motion: keep fades that aid comprehension, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  .pulse::after {
+    animation: none;
+    opacity: 0.6;
+  }
+  .enter,
+  .pin,
+  .popover {
+    @starting-style {
+      transform: none;
+    }
+  }
+  .link {
+    transition: none;
+  }
+  .bar-grow {
+    transition: none;
+  }
+}
